@@ -11,41 +11,42 @@
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-slate-100 min-h-screen">
 
     <nav class="bg-black p-4 text-white shadow-xl sticky top-0 z-50 border-b-2 border-yellow-500">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <h1 class="text-sm md:text-lg font-black tracking-widest text-yellow-400">那魯灣那魯土那魯佛那魯財進門</h1>
-            <div id="status-tag" class="text-[10px] bg-gray-800 px-2 py-1 rounded">更新中...</div>
+            <div id="status-tag" class="text-[10px] bg-slate-800 px-2 py-1 rounded">同步中...</div>
         </div>
     </nav>
 
-    <main class="max-w-4xl mx-auto p-4 pb-20">
-        <div class="bg-white p-6 rounded-2xl shadow-lg mb-8 border border-gray-200">
+    <main class="max-w-4xl mx-auto p-4 pb-24">
+        <div class="bg-white p-6 rounded-3xl shadow-lg mb-8 border border-gray-200">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-1">股號</label>
-                    <input type="text" id="new-symbol" placeholder="2330" class="border-2 border-gray-100 p-3 rounded-xl w-full font-black text-xl outline-none focus:border-yellow-400">
+                    <label class="block text-xs font-bold text-gray-400 mb-1">股票代號</label>
+                    <input type="text" id="new-symbol" placeholder="2330" class="border-2 border-gray-100 p-3 rounded-2xl w-full font-black text-xl outline-none focus:border-yellow-400 transition">
                 </div>
                 <div class="md:col-span-3 grid grid-cols-3 gap-2">
-                    <div class="bg-gray-50 p-2 rounded-xl">
-                        <input type="text" id="d1" placeholder="MM/DD" class="text-xs w-full mb-1 border-b bg-transparent outline-none">
-                        <input type="number" id="p1" placeholder="價位1" class="font-bold w-full bg-transparent outline-none">
+                    <div class="bg-slate-50 p-2 rounded-2xl">
+                        <input type="text" id="d1" placeholder="日期1" class="text-xs w-full mb-1 border-b bg-transparent outline-none">
+                        <input type="number" id="p1" placeholder="目標1" class="font-bold w-full bg-transparent outline-none">
                     </div>
-                    <div class="bg-gray-50 p-2 rounded-xl">
-                        <input type="text" id="d2" placeholder="MM/DD" class="text-xs w-full mb-1 border-b bg-transparent outline-none">
-                        <input type="number" id="p2" placeholder="價位2" class="font-bold w-full bg-transparent outline-none">
+                    <div class="bg-slate-50 p-2 rounded-2xl">
+                        <input type="text" id="d2" placeholder="日期2" class="text-xs w-full mb-1 border-b bg-transparent outline-none">
+                        <input type="number" id="p2" placeholder="目標2" class="font-bold w-full bg-transparent outline-none">
                     </div>
-                    <div class="bg-gray-50 p-2 rounded-xl">
-                        <input type="text" id="d3" placeholder="MM/DD" class="text-xs w-full mb-1 border-b bg-transparent outline-none">
-                        <input type="number" id="p3" placeholder="價位3" class="font-bold w-full bg-transparent outline-none">
+                    <div class="bg-slate-50 p-2 rounded-2xl">
+                        <input type="text" id="d3" placeholder="日期3" class="text-xs w-full mb-1 border-b bg-transparent outline-none">
+                        <input type="number" id="p3" placeholder="目標3" class="font-bold w-full bg-transparent outline-none">
                     </div>
                 </div>
             </div>
-            <button onclick="saveStock()" class="w-full mt-4 bg-yellow-400 text-black py-4 rounded-xl font-black hover:bg-yellow-500 transition shadow-md active:scale-95 text-lg">儲存並同步雲端</button>
+            <button onclick="saveStock()" class="w-full mt-4 bg-yellow-400 text-black py-4 rounded-2xl font-black hover:bg-yellow-500 transition shadow-md text-lg active:scale-95">儲存並同步雲端</button>
         </div>
 
-        <div id="stock-list" class="space-y-4"></div>
+        <div id="stock-list" class="space-y-4">
+            </div>
     </main>
 
     <script>
@@ -55,20 +56,19 @@
         async function init() {
             document.getElementById('status-tag').innerText = "雲端報價中...";
             try {
-                // 向 GAS 要求資料，GAS 會順便去抓 Yahoo 報價
                 const res = await fetch(API_URL + "?t=" + new Date().getTime());
                 myStocks = await res.json();
                 render();
                 document.getElementById('status-tag').innerText = "最後更新: " + new Date().toLocaleTimeString();
             } catch(e) { 
-                document.getElementById('status-tag').innerText = "連線異常"; 
+                document.getElementById('status-tag').innerText = "讀取失敗"; 
             }
         }
 
         async function saveStock() {
             const symbol = document.getElementById('new-symbol').value.trim();
             if(!symbol) return alert("請輸入股號");
-            document.getElementById('status-tag').innerText = "處理中...";
+            document.getElementById('status-tag').innerText = "存入中...";
 
             let existing = myStocks.find(s => s.symbol === symbol);
             const newEntry = {
@@ -85,8 +85,6 @@
             myStocks.push(newEntry);
             
             await fetch(API_URL, { method: "POST", body: JSON.stringify({ data: myStocks }) });
-            
-            // 清空輸入並重新讀取
             ["new-symbol","d1","p1","d2","p2","d3","p3"].forEach(id => document.getElementById(id).value = "");
             init();
         }
@@ -94,9 +92,8 @@
         async function deleteStock(symbol) {
             if(!confirm(`確定刪除 ${symbol}?`)) return;
             myStocks = myStocks.filter(s => s.symbol !== symbol);
-            document.getElementById('status-tag').innerText = "同步刪除中...";
+            document.getElementById('status-tag').innerText = "同步刪除...";
             await fetch(API_URL, { method: "POST", body: JSON.stringify({ data: myStocks }) });
-            render();
             init();
         }
 
@@ -104,15 +101,16 @@
             const container = document.getElementById('stock-list');
             container.innerHTML = "";
             myStocks.sort((a,b) => a.symbol.localeCompare(b.symbol)).forEach(s => {
-                const check = (target) => (target && parseFloat(s.price) >= parseFloat(target)) ? 'price-reached reached-anim' : 'bg-gray-50 text-gray-400';
+                const currentPrice = parseFloat(s.price);
+                const check = (target) => (target && currentPrice >= parseFloat(target)) ? 'price-reached reached-anim' : 'bg-slate-50 text-slate-400';
                 const changeVal = parseFloat(s.change);
-                
+
                 const card = document.createElement('div');
-                card.className = "bg-white p-5 rounded-3xl shadow-sm border border-gray-200 relative";
+                card.className = "bg-white p-5 rounded-3xl shadow-sm border border-slate-200 relative";
                 card.innerHTML = `
-                    <button onclick="deleteStock('${s.symbol}')" class="absolute top-4 right-4 text-gray-300 hover:text-red-500 font-bold px-2">✕</button>
+                    <button onclick="deleteStock('${s.symbol}')" class="absolute top-4 right-4 text-slate-300 hover:text-red-500 font-bold px-2">✕</button>
                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-4xl font-black text-gray-800">${s.symbol}</h2>
+                        <h2 class="text-4xl font-black text-slate-800">${s.symbol}</h2>
                         <div class="text-right mr-6">
                             <div class="text-3xl font-black ${changeVal >= 0 ? 'text-red-500' : 'text-green-600'}">${s.price || '--'}</div>
                             <div class="text-sm font-bold ${changeVal >= 0 ? 'text-red-400' : 'text-green-500'}">${changeVal >= 0 ? '▲' : '▼'}${Math.abs(changeVal)}%</div>
@@ -131,16 +129,8 @@
             });
         }
 
-        // --- 5 分鐘定時更新 (盤中時間) ---
-        setInterval(() => {
-            const now = new Date();
-            const h = now.getHours();
-            const d = now.getDay();
-            if(d >= 1 && d <= 5 && h >= 9 && h < 14) {
-                init();
-            }
-        }, 300000);
-
+        // 每 5 分鐘自動刷新一次
+        setInterval(init, 300000);
         init();
     </script>
 </body>
