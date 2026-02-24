@@ -46,7 +46,7 @@
     </main>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxjp2f1z8ecWomdj8MkXTZrutwITU7fJwiAjmzReZ5MsuSh1YpefFI1TeU2ygf3pJb6/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxJvlU8US35xUnnhvZ1eFCNLfhnPATVS1537-oQaLRzvt2uyOSe9b1FyFwZ46n3E-0s/exec";
 
         async function init() {
             try {
@@ -66,7 +66,7 @@
                         <button onclick="deleteStock('${s.symbol}')" class="absolute top-3 right-3 text-slate-300 hover:text-red-500 font-bold">✕</button>
                         <div class="flex justify-between items-start mb-4">
                             <div>
-                                <p class="text-xs font-bold text-indigo-500 mb-0.5">${s.name}</p>
+                                <p class="text-xs font-bold text-indigo-500 mb-0.5">${s.name || '解析中'}</p>
                                 <h2 class="text-3xl font-black text-slate-900">${s.symbol}</h2>
                             </div>
                             <div class="text-right">
@@ -107,7 +107,7 @@
         }
 
         init();
-        setInterval(init, 300000);
+        setInterval(init, 300000); // 5分鐘自動刷新
     </script>
 </body>
 </html>
