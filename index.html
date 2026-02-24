@@ -3,53 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BigMoney 財進門盤後分析</title>
+    <title>那魯灣那魯土那魯佛那魯財進門</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .price-reached { background-color: #fee2e2; color: #b91c1c; font-weight: bold; border: 2px solid #ef4444 !important; }
-        .input-group { @apply border p-2 rounded w-full text-sm; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .reached-anim { animation: pulse-red 2s infinite; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-20">
+<body class="bg-slate-100 min-h-screen pb-10">
 
-    <nav class="bg-indigo-700 p-4 text-white shadow-lg sticky top-0 z-50">
+    <nav class="bg-slate-800 p-4 text-white shadow-xl sticky top-0 z-50">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold">💰 BigMoney 財進門</h1>
-            <div id="status-tag" class="text-xs bg-indigo-900 px-2 py-1 rounded">連線中...</div>
+            <h1 class="text-xl font-black tracking-tighter text-yellow-400">BIGMONEY 財進門</h1>
+            <div id="status-tag" class="text-[10px] bg-slate-700 px-2 py-1 rounded border border-slate-600">連線中</div>
         </div>
     </nav>
 
     <main class="max-w-4xl mx-auto p-4">
-        <div class="bg-white p-6 rounded-2xl shadow-sm mb-8 border border-indigo-100">
-            <h3 class="font-bold text-indigo-600 mb-4 flex items-center">新增/修改追蹤股票</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div class="bg-white p-6 rounded-3xl shadow-lg mb-8 border-2 border-slate-200">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="md:col-span-1">
-                    <label class="block text-xs font-bold text-gray-500 mb-1">股票代碼</label>
-                    <input type="text" id="new-symbol" placeholder="2330" class="border-2 border-indigo-200 p-2 rounded w-full font-bold text-lg">
+                    <label class="block text-xs font-black text-slate-400 mb-1">股票代號</label>
+                    <input type="text" id="new-symbol" placeholder="2330" class="border-2 border-slate-100 p-3 rounded-2xl w-full font-black text-xl focus:border-yellow-400 outline-none transition">
                 </div>
                 <div class="md:col-span-3 grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="block text-[10px] text-gray-400">第一組 (日期/價位)</label>
-                        <input type="text" id="d1" placeholder="MM/DD" class="border p-1 rounded w-full text-xs mb-1">
-                        <input type="number" id="p1" placeholder="價位" class="border p-1 rounded w-full text-xs">
+                    <div class="bg-slate-50 p-2 rounded-2xl">
+                        <input type="text" id="d1" placeholder="日期" class="bg-transparent text-xs w-full mb-1 border-b">
+                        <input type="number" id="p1" placeholder="價位1" class="bg-transparent font-bold w-full outline-none">
                     </div>
-                    <div>
-                        <label class="block text-[10px] text-gray-400">第二組 (日期/價位)</label>
-                        <input type="text" id="d2" placeholder="MM/DD" class="border p-1 rounded w-full text-xs mb-1">
-                        <input type="number" id="p2" placeholder="價位" class="border p-1 rounded w-full text-xs">
+                    <div class="bg-slate-50 p-2 rounded-2xl">
+                        <input type="text" id="d2" placeholder="日期" class="bg-transparent text-xs w-full mb-1 border-b">
+                        <input type="number" id="p2" placeholder="價位2" class="bg-transparent font-bold w-full outline-none">
                     </div>
-                    <div>
-                        <label class="block text-[10px] text-gray-400">第三組 (日期/價位)</label>
-                        <input type="text" id="d3" placeholder="MM/DD" class="border p-1 rounded w-full text-xs mb-1">
-                        <input type="number" id="p3" placeholder="價位" class="border p-1 rounded w-full text-xs">
+                    <div class="bg-slate-50 p-2 rounded-2xl">
+                        <input type="text" id="d3" placeholder="日期" class="bg-transparent text-xs w-full mb-1 border-b">
+                        <input type="number" id="p3" placeholder="價位3" class="bg-transparent font-bold w-full outline-none">
                     </div>
                 </div>
             </div>
-            <button onclick="saveStock()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition shadow-md">儲存並同步至雲端</button>
+            <button onclick="saveStock()" class="w-full mt-4 bg-slate-800 text-yellow-400 py-4 rounded-2xl font-black hover:bg-slate-700 transition shadow-lg active:scale-95">儲存並同步雲端</button>
         </div>
 
-        <div id="stock-list" class="space-y-4">
-            </div>
+        <div id="stock-list" class="space-y-4"></div>
     </main>
 
     <script>
@@ -57,7 +53,7 @@
         let myStocks = [];
 
         async function init() {
-            document.getElementById('status-tag').innerText = "讀取雲端資料...";
+            document.getElementById('status-tag').innerText = "讀取中...";
             try {
                 const res = await fetch(API_URL);
                 myStocks = await res.json();
@@ -84,70 +80,78 @@
             const symbol = document.getElementById('new-symbol').value.trim();
             if(!symbol) return alert("請輸入股號");
 
+            // 智慧修改：如果已有資料，沒填的欄位就抓舊的
+            let existing = myStocks.find(s => s.symbol === symbol);
             const newEntry = {
                 symbol: symbol,
-                date1: document.getElementById('d1').value, number1: document.getElementById('p1').value,
-                date2: document.getElementById('d2').value, number2: document.getElementById('p2').value,
-                date3: document.getElementById('d3').value, number3: document.getElementById('p3').value
+                date1: document.getElementById('d1').value || (existing ? existing.date1 : ""),
+                number1: document.getElementById('p1').value || (existing ? existing.number1 : ""),
+                date2: document.getElementById('d2').value || (existing ? existing.date2 : ""),
+                number2: document.getElementById('p2').value || (existing ? existing.number2 : ""),
+                date3: document.getElementById('d3').value || (existing ? existing.date3 : ""),
+                number3: document.getElementById('p3').value || (existing ? existing.number3 : "")
             };
 
-            // 移除舊的相同股號，加入新的
             myStocks = myStocks.filter(s => s.symbol !== symbol);
             myStocks.push(newEntry);
-
-            document.getElementById('status-tag').innerText = "存入雲端...";
-            await fetch(API_URL, { method: "POST", body: JSON.stringify({ data: myStocks }) });
-            
-            // 清空輸入框
+            await sync();
             ["new-symbol","d1","p1","d2","p2","d3","p3"].forEach(id => document.getElementById(id).value = "");
             init();
+        }
+
+        async function deleteStock(symbol) {
+            if(!confirm(`確定要刪除 ${symbol} 嗎？`)) return;
+            myStocks = myStocks.filter(s => s.symbol !== symbol);
+            await sync();
+            render();
+        }
+
+        async function sync() {
+            document.getElementById('status-tag').innerText = "同步中...";
+            await fetch(API_URL, { method: "POST", body: JSON.stringify({ data: myStocks }) });
+            document.getElementById('status-tag').innerText = "同步完成";
         }
 
         function render() {
             const container = document.getElementById('stock-list');
             container.innerHTML = "";
-            myStocks.forEach(s => {
-                const check = (target) => (target && s.price >= target) ? 'price-reached' : 'bg-slate-50 text-gray-400';
+            myStocks.sort((a,b) => a.symbol.localeCompare(b.symbol)).forEach(s => {
+                const check = (target) => (target && s.price >= target) ? 'price-reached reached-anim' : 'bg-slate-50 text-slate-400';
                 
                 const card = document.createElement('div');
-                card.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200";
+                card.className = "bg-white p-5 rounded-3xl shadow-sm border-2 border-white relative overflow-hidden";
                 card.innerHTML = `
-                    <div class="flex justify-between items-center mb-4">
+                    <button onclick="deleteStock('${s.symbol}')" class="absolute top-4 right-4 text-slate-300 hover:text-red-500 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                    <div class="flex justify-between items-center mb-6">
                         <div>
-                            <span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold">TW MARKET</span>
-                            <h2 class="text-2xl font-black text-slate-800">${s.symbol}</h2>
+                            <h2 class="text-3xl font-black text-slate-800">${s.symbol}</h2>
+                            <p class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Market Realtime</p>
                         </div>
-                        <div class="text-right">
-                            <div class="text-2xl font-black ${s.change >= 0 ? 'text-red-500' : 'text-green-600'}">${s.price || '--'}</div>
-                            <div class="text-sm font-bold ${s.change >= 0 ? 'text-red-400' : 'text-green-500'}">${s.change >= 0 ? '+' : ''}${s.change}%</div>
+                        <div class="text-right mr-8">
+                            <div class="text-3xl font-black ${s.change >= 0 ? 'text-red-500' : 'text-green-600'}">${s.price || '--'}</div>
+                            <div class="text-sm font-bold ${s.change >= 0 ? 'text-red-400' : 'text-green-500'}">${s.change >= 0 ? '▲' : '▼'}${Math.abs(s.change)}%</div>
                         </div>
                     </div>
                     <div class="grid grid-cols-3 gap-3">
-                        <div class="p-3 rounded-xl text-center border ${check(s.number1)}">
-                            <div class="text-[10px] mb-1 font-bold">${s.date1 || '---'}</div>
-                            <div class="text-lg font-black">${s.number1 || '--'}</div>
-                        </div>
-                        <div class="p-3 rounded-xl text-center border ${check(s.number2)}">
-                            <div class="text-[10px] mb-1 font-bold">${s.date2 || '---'}</div>
-                            <div class="text-lg font-black">${s.number2 || '--'}</div>
-                        </div>
-                        <div class="p-3 rounded-xl text-center border ${check(s.number3)}">
-                            <div class="text-[10px] mb-1 font-bold">${s.date3 || '---'}</div>
-                            <div class="text-lg font-black">${s.number3 || '--'}</div>
-                        </div>
+                        ${[1,2,3].map(i => `
+                            <div class="p-3 rounded-2xl text-center border-2 transition-all ${check(s['number'+i])}">
+                                <div class="text-[10px] mb-1 font-bold opacity-60">${s['date'+i] || '---'}</div>
+                                <div class="text-lg font-black">${s['number'+i] || '--'}</div>
+                            </div>
+                        `).join('')}
                     </div>
                 `;
                 container.appendChild(card);
             });
         }
 
-        // 每 5 分鐘自動抓一次報價 (盤中時間)
         setInterval(() => {
             const now = new Date();
-            const h = now.getHours();
-            const d = now.getDay();
-            if(d >= 1 && d <= 5 && h >= 9 && h < 14) {
-                console.log("執行 5 分鐘自動更新");
+            if(now.getDay() >= 1 && now.getDay() <= 5 && now.getHours() >= 9 && now.getHours() < 14) {
                 updatePrices().then(render);
             }
         }, 300000);
