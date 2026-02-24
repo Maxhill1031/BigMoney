@@ -101,6 +101,15 @@
             border-radius: 6px;
             font-size: 14px;
             background-color: #fafafa;
+            transition: all 0.3s ease;
+        }
+        
+        /* 💡 新增：達標時的專屬亮紅燈 CSS 樣式 */
+        .target-reached {
+            color: var(--up-color) !important;
+            font-weight: bold !important;
+            border: 2px solid var(--up-color) !important;
+            background-color: #fff0f0 !important;
         }
         
         .fab {
@@ -174,7 +183,7 @@
 <body>
 
 <div class="app-container">
-    <h1>📈 盤後分析監控</h1>
+    <h1>📈 那魯灣那魯土那魯佛那魯財進門</h1>
     
     <div id="stockList">
         </div>
@@ -184,9 +193,9 @@
 
 <div class="modal-overlay" id="addModal">
     <div class="modal-content">
-        <h3>新增追蹤股票</h3>
-        <input type="text" id="newSymbol" placeholder="輸入股號 (例: MSTR 或 6209)" autocomplete="off">
-        <input type="text" id="newName" placeholder="股名 (選填，留空將自動抓取)" autocomplete="off">
+        <h3>新增台股追蹤</h3>
+        <input type="text" id="newSymbol" placeholder="輸入股號 (例: 2330 或 3293)" autocomplete="off">
+        <input type="text" id="newName" placeholder="股名 (選填，留空將自動抓取中文)" autocomplete="off">
         <div class="modal-btns">
             <button class="btn-cancel" onclick="closeModal()">取消</button>
             <button class="btn-confirm" id="confirmAddBtn" onclick="addNewStock()">加入</button>
@@ -212,7 +221,26 @@
         localStorage.setItem('myStocks', JSON.stringify(stockData));
     }
 
-    // 負責單一 API 請求的核心函式 (新增回傳 name)
+    // 專門抓取台灣 Yahoo 股市「中文股名」的爬蟲函式
+    async function fetchTaiwanStockName(symbol) {
+        try {
+            const proxyUrl = 'https://api.allorigins.win/raw?url=';
+            const targetUrl = encodeURIComponent(`https://tw.stock.yahoo.com/quote/${symbol}`);
+            const response = await fetch(proxyUrl + targetUrl);
+            const htmlText = await response.text();
+            
+            const match = htmlText.match(/<title>(.*?)\(/);
+            if (match && match[1]) {
+                return match[1].trim(); 
+            }
+            return symbol; 
+        } catch (error) {
+            console.error('抓取中文股名失敗', error);
+            return symbol; 
+        }
+    }
+
+    // 抓取即時「股價數字」的函式
     async function fetchYahooAPI(symbolWithSuffix) {
         const timestamp = new Date().getTime(); 
         const proxyUrl = 'https://api.allorigins.win/raw?url=';
@@ -222,7 +250,6 @@
         if (!response.ok) throw new Error('API 連線失敗');
         
         const data = await response.json();
-        
         if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
             throw new Error('找不到該股票資料');
         }
@@ -232,19 +259,15 @@
         const previousClose = meta.chartPreviousClose;
         const changeNum = (((currentPrice - previousClose) / previousClose) * 100).toFixed(2);
         
-        // 抓取 API 提供的簡稱或全名
-        const fetchedName = meta.shortName || meta.longName || symbolWithSuffix;
-        
-        return { price: currentPrice, change: changeNum, name: fetchedName };
+        return { price: currentPrice, change: changeNum };
     }
 
-    // 處理台股上市/上櫃自動偵測的包裹函式
+    // 自動偵測上市/上櫃並抓取價格
     async function fetchRealPrice(symbol) {
         try {
             if (symbol.includes('.')) {
                 return await fetchYahooAPI(symbol);
             }
-
             try {
                 return await fetchYahooAPI(`${symbol}.TW`);
             } catch (error) {
@@ -253,15 +276,39 @@
             }
         } catch (error) {
             console.error(`最終無法抓取 ${symbol} 的股價:`, error);
-            return { price: '---', change: '---', name: symbol }; 
+            return { price: '---', change: '---' }; 
         }
     }
 
+    // 判斷是否達標並更新輸入框樣式的共用邏輯
+    function checkTargetPrice(stockId, currentPriceStr) {
+        const currentPrice = parseFloat(currentPriceStr);
+        if (isNaN(currentPrice)) return;
+
+        const stock = stockData.find(s => s.id === stockId);
+        if (!stock) return;
+
+        // 檢查三個自訂數字欄位
+        for (let i = 0; i < 3; i++) {
+            const targetInput = document.getElementById(`target-num-${stockId}-${i}`);
+            if (!targetInput) continue;
+
+            const targetValue = parseFloat(stock.fields[i].number);
+            
+            // 💡 判斷條件：當欄位有填數字，且即時股價「大於」設定數字時，啟動亮紅燈樣式
+            if (!isNaN(targetValue) && targetValue > 0 && currentPrice > targetValue) {
+                targetInput.classList.add('target-reached');
+            } else {
+                targetInput.classList.remove('target-reached');
+            }
+        }
+    }
+
+    // 畫面渲染
     async function renderList() {
         const listContainer = document.getElementById('stockList');
         listContainer.innerHTML = '';
 
-        // 階段一：畫出骨架
         stockData.forEach((stock) => {
             const cardHtml = `
                 <div class="stock-card" id="card-${stock.id}">
@@ -286,7 +333,8 @@
                                        value="${stock.fields[i]?.date || ''}" 
                                        onchange="updateField('${stock.id}', ${i}, 'date', this.value)">
                                 <input type="number" 
-                                       placeholder="輸入數值" 
+                                       id="target-num-${stock.id}-${i}"
+                                       placeholder="輸入目標價" 
                                        value="${stock.fields[i]?.number || ''}" 
                                        onchange="updateField('${stock.id}', ${i}, 'number', this.value)">
                             </div>
@@ -297,10 +345,9 @@
             listContainer.innerHTML += cardHtml;
         });
 
-        // 階段二：精準抓取最新資料
+        // 批次更新最新價格
         for (const stock of stockData) {
             const data = await fetchRealPrice(stock.symbol);
-            
             const priceElement = document.getElementById(`price-${stock.id}`);
             const changeElement = document.getElementById(`change-${stock.id}`);
             
@@ -311,9 +358,11 @@
 
                 priceElement.innerText = data.price;
                 priceElement.className = `price ${priceClass}`;
-                
                 changeElement.innerText = `${changeSign}${data.change}%`;
                 changeElement.className = `change ${priceClass}`;
+
+                // 💡 股價抓回來後，立刻檢查是否超越了您設定的價格
+                checkTargetPrice(stock.id, data.price);
             } else {
                 priceElement.innerText = '查無報價';
                 priceElement.style.fontSize = '14px';
@@ -327,6 +376,14 @@
         if (stock) {
             stock.fields[fieldIndex][fieldType] = value;
             saveData();
+            
+            // 💡 如果是修改數字欄位，立刻重新比對當前股價，不需重新整理網頁
+            if (fieldType === 'number') {
+                const priceElement = document.getElementById(`price-${stockId}`);
+                if (priceElement && priceElement.innerText !== '載入中...' && priceElement.innerText !== '查無報價') {
+                    checkTargetPrice(stockId, priceElement.innerText);
+                }
+            }
         }
     }
 
@@ -342,7 +399,6 @@
         document.getElementById('addModal').style.display = 'flex';
         document.getElementById('newSymbol').value = '';
         document.getElementById('newName').value = '';
-        // 重置按鈕狀態
         const confirmBtn = document.getElementById('confirmAddBtn');
         confirmBtn.innerText = '加入';
         confirmBtn.disabled = false;
@@ -352,7 +408,7 @@
         document.getElementById('addModal').style.display = 'none';
     }
 
-    // 升級版的新增邏輯：非同步抓取股名
+    // 同步抓取價格與中文股名
     async function addNewStock() {
         const symbolInput = document.getElementById('newSymbol').value.trim().toUpperCase();
         let nameInput = document.getElementById('newName').value.trim();
@@ -363,11 +419,10 @@
         }
 
         const confirmBtn = document.getElementById('confirmAddBtn');
-        confirmBtn.innerText = '抓取中...';
+        confirmBtn.innerText = '抓取資料中...';
         confirmBtn.disabled = true;
 
         try {
-            // 先去網路抓這檔股票的資料，順便拿股名
             const data = await fetchRealPrice(symbolInput);
             
             if (data.price === '---') {
@@ -377,9 +432,8 @@
                 return;
             }
 
-            // 如果使用者沒有自己填股名，就用 API 抓回來的名字
             if (!nameInput) {
-                nameInput = data.name;
+                nameInput = await fetchTaiwanStockName(symbolInput);
             }
 
             const newStock = {
