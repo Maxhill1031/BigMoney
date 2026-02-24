@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>台股處置監控</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-sub: #666666;
+            --primary: #4a90e2;
+            --border-radius: 12px;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+        }
+        /* 限制在手機寬度，讓電腦版也能有手機預覽效果 */
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            background-color: var(--bg-color);
+            padding: 20px 15px;
+            box-sizing: border-box;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .header h1 {
+            font-size: 24px;
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        /* 分頁切換按鈕區域 */
+        .tabs {
+            display: flex;
+            background-color: #e0e5e9;
+            border-radius: var(--border-radius);
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-sub);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        /* 狀態提示 */
+        .status-msg {
+            text-align: center;
+            color: var(--text-sub);
+            font-size: 14px;
+            padding: 20px 0;
+        }
+        /* 股票卡片列表 */
+        .list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .stock-card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .stock-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .stock-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+        .stock-symbol {
+            font-size: 14px;
+            color: var(--text-sub);
+        }
+        .stock-tag {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .tag-out {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <h1>📊 處置監控</h1>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('in')">🔒 處置中</button>
+        <button class="tab-btn" onclick="switchTab('out')">🚀 剛出關</button>
+    </div>
+
+    <div id="loading" class="status-msg">
+        Loading...
+    </div>
+
+    <div id="listContainer" class="list-container">
+        </div>
+</div>
+
+<script>
+    // 預留給盤後分析資料匯入的結構，可由您的後端或資料庫直接產出此 JSON 格式
+    const afterHoursData = {
+        in: [
+            { symbol: '3231', name: '緯創', date: '迄 03/15', rule: '分盤交易' },
+            { symbol: '2382', name: '廣達', date: '迄 03/18', rule: '全額交割' }
+        ],
+        out: [
+            { symbol: '2330', name: '台積電', date: '03/01 解禁', rule: '恢復正常' },
+            { symbol: '3443', name: '創意', date: '02/28 解禁', rule: '恢復正常' }
+        ]
+    };
+
+    let currentTab = 'in';
+
+    // 模擬載入與畫面渲染邏輯
+    function renderList(tabType) {
+        const container = document.getElementById('listContainer');
+        const loading = document.getElementById('loading');
+        
+        container.innerHTML = '';
+        loading.style.display = 'block';
+
+        // 模擬網路延遲，讓 Loading 狀態顯示
+        setTimeout(() => {
+            loading.style.display = 'none';
+            const data = afterHoursData[tabType];
+
+            if (data.length === 0) {
+                container.innerHTML = '<div class="status-msg">目前無相關資料</div>';
+                return;
+            }
+
+            data.forEach(item => {
+                const isOut = tabType === 'out';
+                const tagClass = isOut ? 'stock-tag tag-out' : 'stock-tag';
+                
+                const cardHtml = `
+                    <div class="stock-card">
+                        <div class="stock-info">
+                            <span class="stock-name">${item.name}</span>
+                            <span class="stock-symbol">${item.symbol}</span>
+                        </div>
+                        <div class="${tagClass}">
+                            ${item.date}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }, 500); // 0.5秒後顯示資料
+    }
+
+    // 切換分頁按鈕視覺與資料
+    function switchTab(tabType) {
+        if (currentTab === tabType) return;
+        currentTab = tabType;
+
+        // 更新按鈕樣式
+        const btns = document.querySelectorAll('.tab-btn');
+        btns[0].classList.toggle('active', tabType === 'in');
+        btns[1].classList.toggle('active', tabType === 'out');
+
+        // 重新渲染列表
+        renderList(tabType);
+    }
+
+    // 初始載入預設分頁
+    window.onload = () => {
+        renderList('in');
+    };
+</script>
+
+</body>
+</html>
