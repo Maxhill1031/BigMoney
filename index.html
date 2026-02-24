@@ -53,10 +53,10 @@
         </div>
 
         <div class="hidden md:flex items-center text-center text-[11px] font-bold text-slate-400 mb-2 px-4">
-            <div class="w-16 text-left">股名</div>
-            <div class="w-20 text-left">股號</div>
-            <div class="w-24 text-right pr-4">報價</div>
-            <div class="w-16 text-right pr-4">漲跌</div>
+            <div class="w-28 text-left pl-2">股名</div>
+            <div class="w-24 text-left">股號</div>
+            <div class="w-28 text-right pr-2">報價</div>
+            <div class="w-28 text-right pr-2">漲跌</div>
             <div class="flex-1">目標 1</div>
             <div class="flex-1">目標 2</div>
             <div class="flex-1">目標 3</div>
@@ -83,25 +83,23 @@
                 myStocks.sort((a,b) => a.symbol.localeCompare(b.symbol)).forEach(s => {
                     const p = parseFloat(s.price) || 0;
                     const c = parseFloat(s.change) || 0;
-                    // 檢查目標價是否達標 (當前價格 >= 目標價)
                     const check = (target) => {
                         if (!target || isNaN(target)) return 'bg-slate-50 border-slate-100 text-slate-800';
                         return p >= parseFloat(target) ? 'price-reached reached-anim border-red-500' : 'bg-slate-50 border-slate-100 text-slate-800';
                     };
 
                     const row = document.createElement('div');
-                    // 行容器：採用 Flex 橫向一字排開
                     row.className = "bg-white p-3 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md hover:border-indigo-300 transition cursor-pointer flex flex-wrap md:flex-nowrap items-center text-center gap-2";
                     row.onclick = () => loadToEdit(s.symbol, s.number1, s.number2, s.number3, s.number4, s.number5);
                     
                     row.innerHTML = `
-                        <div class="w-16 text-left text-xs font-bold text-indigo-600 truncate px-1">${s.name || '解析中'}</div>
+                        <div class="w-28 text-left text-xl md:text-2xl font-black text-indigo-600 truncate px-1">${s.name || '解析中'}</div>
                         
-                        <div class="w-20 text-left text-2xl font-black text-slate-900">${s.symbol}</div>
+                        <div class="w-24 text-left text-xl md:text-2xl font-black text-slate-900">${s.symbol}</div>
                         
-                        <div class="w-24 text-right text-2xl font-black ${c >= 0 ? 'text-red-500' : 'text-green-600'} pr-2">${s.price}</div>
+                        <div class="w-28 text-right text-xl md:text-2xl font-black ${c >= 0 ? 'text-red-500' : 'text-green-600'} pr-2">${s.price}</div>
                         
-                        <div class="w-16 text-right text-xs font-bold ${c >= 0 ? 'text-red-400' : 'text-green-500'} pr-2">${c >= 0 ? '▲' : '▼'}${Math.abs(c)}%</div>
+                        <div class="w-28 text-right text-xl md:text-2xl font-black ${c >= 0 ? 'text-red-400' : 'text-green-500'} pr-2">${c >= 0 ? '▲' : '▼'}${Math.abs(c)}%</div>
                         
                         ${[1,2,3,4,5].map(i => `
                             <div class="flex-1 py-2 rounded-xl border-2 transition-colors ${check(s['number'+i])}">
@@ -118,7 +116,6 @@
             } catch(e) { console.error("Update error"); }
         }
 
-        // 點擊帶入編輯區
         function loadToEdit(symbol, n1, n2, n3, n4, n5) {
             document.getElementById('new-symbol').value = symbol;
             document.getElementById('p1').value = n1 || '';
@@ -162,7 +159,7 @@
         }
 
         init();
-        setInterval(init, 300000); // 5分鐘自動刷新
+        setInterval(init, 300000); 
     </script>
 </body>
 </html>
