@@ -6,32 +6,49 @@
     <title>BigMoney 財進門盤後分析</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .price-reached { background-color: #fee2e2; color: #b91c1c; font-weight: bold; border: 1px solid #ef4444; }
-        .update-flash { animation: flash 1s ease-out; }
-        @keyframes flash { 0% { background-color: #fef08a; } 100% { background-color: transparent; } }
+        .price-reached { background-color: #fee2e2; color: #b91c1c; font-weight: bold; border: 2px solid #ef4444 !important; }
+        .input-group { @apply border p-2 rounded w-full text-sm; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
+<body class="bg-slate-50 min-h-screen pb-20">
 
-    <nav class="bg-indigo-600 p-4 text-white shadow-lg sticky top-0 z-50">
+    <nav class="bg-indigo-700 p-4 text-white shadow-lg sticky top-0 z-50">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-widest">💰 BigMoney 財進門</h1>
-            <div id="status-tag" class="text-xs bg-indigo-800 px-2 py-1 rounded">資料載入中...</div>
+            <h1 class="text-xl font-bold">💰 BigMoney 財進門</h1>
+            <div id="status-tag" class="text-xs bg-indigo-900 px-2 py-1 rounded">連線中...</div>
         </div>
     </nav>
 
-    <main class="max-w-4xl mx-auto p-4 pb-24">
-        <div class="bg-white p-4 rounded-xl shadow-sm mb-6">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <input type="text" id="new-symbol" placeholder="輸入股號 (如 2330)" class="border p-2 rounded">
-                <input type="text" id="target-date" placeholder="日期 (MM/DD)" class="border p-2 rounded">
-                <input type="number" id="target-price" placeholder="目標價" class="border p-2 rounded">
-                <button onclick="addNewStock()" class="bg-indigo-500 text-white rounded font-bold hover:bg-indigo-600 transition">新增/更新</button>
+    <main class="max-w-4xl mx-auto p-4">
+        <div class="bg-white p-6 rounded-2xl shadow-sm mb-8 border border-indigo-100">
+            <h3 class="font-bold text-indigo-600 mb-4 flex items-center">新增/修改追蹤股票</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div class="md:col-span-1">
+                    <label class="block text-xs font-bold text-gray-500 mb-1">股票代碼</label>
+                    <input type="text" id="new-symbol" placeholder="2330" class="border-2 border-indigo-200 p-2 rounded w-full font-bold text-lg">
+                </div>
+                <div class="md:col-span-3 grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-[10px] text-gray-400">第一組 (日期/價位)</label>
+                        <input type="text" id="d1" placeholder="MM/DD" class="border p-1 rounded w-full text-xs mb-1">
+                        <input type="number" id="p1" placeholder="價位" class="border p-1 rounded w-full text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400">第二組 (日期/價位)</label>
+                        <input type="text" id="d2" placeholder="MM/DD" class="border p-1 rounded w-full text-xs mb-1">
+                        <input type="number" id="p2" placeholder="價位" class="border p-1 rounded w-full text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400">第三組 (日期/價位)</label>
+                        <input type="text" id="d3" placeholder="MM/DD" class="border p-1 rounded w-full text-xs mb-1">
+                        <input type="number" id="p3" placeholder="價位" class="border p-1 rounded w-full text-xs">
+                    </div>
+                </div>
             </div>
-            <p class="text-gray-400 text-[10px] mt-2 text-center">※ 修改現有股票請輸入相同股號，將會覆蓋舊有設定</p>
+            <button onclick="saveStock()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition shadow-md">儲存並同步至雲端</button>
         </div>
 
-        <div id="stock-list" class="grid gap-4">
+        <div id="stock-list" class="space-y-4">
             </div>
     </main>
 
@@ -39,105 +56,84 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbz47CEQLhMAItUwbrV6Z8b4Ko7egb8nbsSHHF48tzPFGA5A-vgKaIefEh5J8YBWuY-Q/exec";
         let myStocks = [];
 
-        // --- 核心功能：從雲端抓取清單 ---
-        async function fetchCloudData() {
-            document.getElementById('status-tag').innerText = "雲端同步中...";
+        async function init() {
+            document.getElementById('status-tag').innerText = "讀取雲端資料...";
             try {
-                const response = await fetch(API_URL);
-                myStocks = await response.json();
-                await updateAllPrices(); // 抓取完清單後立刻抓一次報價
-                renderList();
+                const res = await fetch(API_URL);
+                myStocks = await res.json();
+                await updatePrices();
+                render();
                 document.getElementById('status-tag').innerText = "同步完成";
-            } catch (e) {
-                document.getElementById('status-tag').innerText = "連線失敗";
-            }
+            } catch(e) { document.getElementById('status-tag').innerText = "連線失敗"; }
         }
 
-        // --- 核心功能：抓取 Yahoo 報價 ---
-        async function updateAllPrices() {
-            for (let stock of myStocks) {
+        async function updatePrices() {
+            for (let s of myStocks) {
                 try {
-                    const suffix = stock.symbol.length >= 4 && stock.symbol.startsWith('6') || stock.symbol.startsWith('2') ? ".TW" : ".TWO";
-                    // 這裡使用 Yahoo Finance 公開跳板
-                    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${stock.symbol}${suffix}`);
+                    const suffix = (s.symbol.startsWith('6') || s.symbol.startsWith('2') || s.symbol.startsWith('3')) ? ".TW" : ".TWO";
+                    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${s.symbol}${suffix}`);
                     const json = await res.json();
                     const meta = json.chart.result[0].meta;
-                    stock.currentPrice = meta.regularMarketPrice;
-                    stock.change = ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose * 100).toFixed(2);
-                    stock.name = stock.name || "讀取中"; 
-                } catch (e) { console.error("報價抓取失敗", e); }
+                    s.price = meta.regularMarketPrice;
+                    s.change = ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose * 100).toFixed(2);
+                } catch(e) { s.price = 0; s.change = 0; }
             }
-            renderList();
         }
 
-        // --- 核心功能：新增股票並同步到雲端 ---
-        async function addNewStock() {
+        async function saveStock() {
             const symbol = document.getElementById('new-symbol').value.trim();
-            const date = document.getElementById('target-date').value.trim();
-            const price = document.getElementById('target-price').value.trim();
+            if(!symbol) return alert("請輸入股號");
 
-            if (!symbol) return alert("請輸入股號");
+            const newEntry = {
+                symbol: symbol,
+                date1: document.getElementById('d1').value, number1: document.getElementById('p1').value,
+                date2: document.getElementById('d2').value, number2: document.getElementById('p2').value,
+                date3: document.getElementById('d3').value, number3: document.getElementById('p3').value
+            };
 
-            // 檢查清單是否已有此股票
-            let stock = myStocks.find(s => s.symbol === symbol);
-            if (stock) {
-                // 依序填入三組價位中尚未被填寫的一組，或覆蓋第一組
-                if (!stock.date1) { stock.date1 = date; stock.number1 = price; }
-                else if (!stock.date2) { stock.date2 = date; stock.number2 = price; }
-                else { stock.date3 = date; stock.number3 = price; }
-            } else {
-                myStocks.push({
-                    symbol: symbol, name: "",
-                    date1: date, number1: price,
-                    date2: "", number2: "",
-                    date3: "", number3: ""
-                });
-            }
+            // 移除舊的相同股號，加入新的
+            myStocks = myStocks.filter(s => s.symbol !== symbol);
+            myStocks.push(newEntry);
 
-            // 同步回傳給 Google 試算表
-            document.getElementById('status-tag').innerText = "儲存中...";
-            await fetch(API_URL, {
-                method: "POST",
-                body: JSON.stringify({ data: myStocks })
-            });
+            document.getElementById('status-tag').innerText = "存入雲端...";
+            await fetch(API_URL, { method: "POST", body: JSON.stringify({ data: myStocks }) });
             
-            document.getElementById('new-symbol').value = "";
-            fetchCloudData(); // 重新整理
+            // 清空輸入框
+            ["new-symbol","d1","p1","d2","p2","d3","p3"].forEach(id => document.getElementById(id).value = "");
+            init();
         }
 
-        // --- 核心功能：渲染 UI 與判斷達標 ---
-        function renderList() {
+        function render() {
             const container = document.getElementById('stock-list');
             container.innerHTML = "";
-
-            myStocks.forEach(stock => {
-                const isReached = (p) => (p && stock.currentPrice >= p) ? "price-reached" : "bg-gray-50";
+            myStocks.forEach(s => {
+                const check = (target) => (target && s.price >= target) ? 'price-reached' : 'bg-slate-50 text-gray-400';
                 
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-xl shadow-md p-4 border-l-4 border-indigo-500 update-flash";
+                card.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200";
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-3">
+                    <div class="flex justify-between items-center mb-4">
                         <div>
-                            <span class="text-xs font-bold text-indigo-400 uppercase tracking-tighter">STOCK CODE: ${stock.symbol}</span>
-                            <h2 class="text-xl font-black text-slate-800">${stock.symbol} <span class="text-sm font-normal text-gray-400">市場報價</span></h2>
+                            <span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold">TW MARKET</span>
+                            <h2 class="text-2xl font-black text-slate-800">${s.symbol}</h2>
                         </div>
                         <div class="text-right">
-                            <div class="text-2xl font-black ${stock.change >= 0 ? 'text-red-500' : 'text-green-500'}">${stock.currentPrice || '--'}</div>
-                            <div class="text-xs font-bold ${stock.change >= 0 ? 'text-red-400' : 'text-green-400'}">${stock.change >= 0 ? '+' : ''}${stock.change || '0.00'}%</div>
+                            <div class="text-2xl font-black ${s.change >= 0 ? 'text-red-500' : 'text-green-600'}">${s.price || '--'}</div>
+                            <div class="text-sm font-bold ${s.change >= 0 ? 'text-red-400' : 'text-green-500'}">${s.change >= 0 ? '+' : ''}${s.change}%</div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="p-2 rounded text-center ${isReached(stock.number1)}">
-                            <div class="text-[10px] opacity-60">${stock.date1 || '未設定'}</div>
-                            <div class="font-bold">${stock.number1 || '--'}</div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="p-3 rounded-xl text-center border ${check(s.number1)}">
+                            <div class="text-[10px] mb-1 font-bold">${s.date1 || '---'}</div>
+                            <div class="text-lg font-black">${s.number1 || '--'}</div>
                         </div>
-                        <div class="p-2 rounded text-center ${isReached(stock.number2)}">
-                            <div class="text-[10px] opacity-60">${stock.date2 || '未設定'}</div>
-                            <div class="font-bold">${stock.number2 || '--'}</div>
+                        <div class="p-3 rounded-xl text-center border ${check(s.number2)}">
+                            <div class="text-[10px] mb-1 font-bold">${s.date2 || '---'}</div>
+                            <div class="text-lg font-black">${s.number2 || '--'}</div>
                         </div>
-                        <div class="p-2 rounded text-center ${isReached(stock.number3)}">
-                            <div class="text-[10px] opacity-60">${stock.date3 || '未設定'}</div>
-                            <div class="font-bold">${stock.number3 || '--'}</div>
+                        <div class="p-3 rounded-xl text-center border ${check(s.number3)}">
+                            <div class="text-[10px] mb-1 font-bold">${s.date3 || '---'}</div>
+                            <div class="text-lg font-black">${s.number3 || '--'}</div>
                         </div>
                     </div>
                 `;
@@ -145,24 +141,18 @@
             });
         }
 
-        // --- 5 分鐘計時器邏輯 ---
-        function startTimer() {
-            setInterval(() => {
-                const now = new Date();
-                const hour = now.getHours();
-                const day = now.getDay();
-                
-                // 僅在週一至週五 (1-5) 且 09:00~14:00 間更新
-                if (day >= 1 && day <= 5 && hour >= 9 && hour < 14) {
-                    console.log("盤中時間，觸發自動更新...");
-                    updateAllPrices();
-                }
-            }, 300000); // 300,000 毫秒 = 5 分鐘
-        }
+        // 每 5 分鐘自動抓一次報價 (盤中時間)
+        setInterval(() => {
+            const now = new Date();
+            const h = now.getHours();
+            const d = now.getDay();
+            if(d >= 1 && d <= 5 && h >= 9 && h < 14) {
+                console.log("執行 5 分鐘自動更新");
+                updatePrices().then(render);
+            }
+        }, 300000);
 
-        // 啟動程式
-        fetchCloudData();
-        startTimer();
+        init();
     </script>
 </body>
 </html>
