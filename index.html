@@ -6,47 +6,61 @@
     <title>那魯灣那魯土那魯佛那魯財進門</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f1f5f9; }
         .price-reached { background-color: #fee2e2; color: #b91c1c; border: 2px solid #ef4444 !important; }
         .reached-anim { animation: pulse-red 1.2s infinite; }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        /* 隱藏數字輸入框的上下箭頭 */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
-<body class="pb-10">
+<body class="pb-12">
 
     <nav class="bg-slate-900 p-3 text-white shadow-lg sticky top-0 z-50 border-b-2 border-yellow-500 text-center">
         <h1 class="text-lg font-black tracking-widest text-yellow-400">那魯灣那魯土那魯佛那魯財進門</h1>
     </nav>
 
     <main class="max-w-6xl mx-auto p-4">
-        <div class="bg-white p-4 rounded-2xl shadow-md mb-8 border border-slate-200">
+        <div id="edit-section" class="bg-white p-5 rounded-2xl shadow-md mb-6 border border-slate-200 transition-all">
             <div class="flex flex-wrap items-end gap-3">
-                <div class="flex-1 min-w-[120px]">
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1">股票代號</label>
-                    <input type="text" id="new-symbol" placeholder="8046" class="border-b-2 border-slate-100 py-1 w-full font-black text-xl outline-none focus:border-yellow-400">
+                <div class="flex-[1.2] min-w-[100px]">
+                    <label class="block text-[10px] font-bold text-indigo-500 mb-1">股票代號</label>
+                    <input type="text" id="new-symbol" placeholder="代號" class="border-b-2 border-slate-200 py-1 w-full font-black text-2xl outline-none focus:border-indigo-500 text-slate-800">
                 </div>
-                <div class="flex-[0.8] min-w-[80px]">
+                <div class="flex-1 min-w-[60px]">
                     <label class="block text-[10px] font-bold text-slate-400 mb-1">目標 1</label>
                     <input type="number" id="p1" class="border-b-2 border-slate-100 py-1 w-full font-black text-lg outline-none focus:border-yellow-400">
                 </div>
-                <div class="flex-[0.8] min-w-[80px]">
+                <div class="flex-1 min-w-[60px]">
                     <label class="block text-[10px] font-bold text-slate-400 mb-1">目標 2</label>
                     <input type="number" id="p2" class="border-b-2 border-slate-100 py-1 w-full font-black text-lg outline-none focus:border-yellow-400">
                 </div>
-                <div class="flex-[0.8] min-w-[80px]">
+                <div class="flex-1 min-w-[60px]">
                     <label class="block text-[10px] font-bold text-slate-400 mb-1">目標 3</label>
                     <input type="number" id="p3" class="border-b-2 border-slate-100 py-1 w-full font-black text-lg outline-none focus:border-yellow-400">
                 </div>
-                <button onclick="saveStock()" class="bg-slate-900 text-yellow-400 px-6 py-2 rounded-xl font-black hover:bg-black transition shadow-md">儲存</button>
+                <div class="flex-1 min-w-[60px]">
+                    <label class="block text-[10px] font-bold text-slate-400 mb-1">目標 4</label>
+                    <input type="number" id="p4" class="border-b-2 border-slate-100 py-1 w-full font-black text-lg outline-none focus:border-yellow-400">
+                </div>
+                <div class="flex-1 min-w-[60px]">
+                    <label class="block text-[10px] font-bold text-slate-400 mb-1">目標 5</label>
+                    <input type="number" id="p5" class="border-b-2 border-slate-100 py-1 w-full font-black text-lg outline-none focus:border-yellow-400">
+                </div>
+                <button onclick="saveStock()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-black hover:bg-indigo-700 transition shadow-md w-full md:w-auto">儲存/更新</button>
             </div>
+            <p class="text-[10px] text-slate-400 mt-2 font-bold tracking-wider">💡 提示：點擊下方的股票列，即可將資料自動帶入此處進行修改。</p>
         </div>
 
-        <div id="stock-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        <div id="stock-list" class="space-y-3">
+            <p class="text-center text-slate-400 font-bold py-10">連線抓取報價中...</p>
+        </div>
     </main>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxJvlU8US35xUnnhvZ1eFCNLfhnPATVS1537-oQaLRzvt2uyOSe9b1FyFwZ46n3E-0s/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbwX5droLmJOuZuTIw7MrfMfwYPSuj2_0QKScK3oa92AlYF0aP5edf22C6rwKc8Imx_0/exec";
 
         async function init() {
             try {
@@ -60,30 +74,54 @@
                     const c = parseFloat(s.change) || 0;
                     const check = (target) => (target && p >= parseFloat(target)) ? 'price-reached reached-anim border-red-500' : 'bg-slate-50 border-slate-100';
 
-                    const card = document.createElement('div');
-                    card.className = "bg-white p-5 rounded-3xl shadow-sm border border-slate-200 relative hover:shadow-md transition";
-                    card.innerHTML = `
-                        <button onclick="deleteStock('${s.symbol}')" class="absolute top-3 right-3 text-slate-300 hover:text-red-500 font-bold">✕</button>
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <p class="text-xs font-bold text-indigo-500 mb-0.5">${s.name || '解析中'}</p>
-                                <h2 class="text-3xl font-black text-slate-900">${s.symbol}</h2>
+                    const row = document.createElement('div');
+                    // 點擊整列帶入資料 (onclick)
+                    row.className = "bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md hover:border-indigo-200 transition cursor-pointer group flex flex-col md:flex-row items-center justify-between gap-4";
+                    row.onclick = () => loadToEdit(s.symbol, s.number1, s.number2, s.number3, s.number4, s.number5);
+                    
+                    row.innerHTML = `
+                        <div class="flex items-center gap-5 w-full md:w-auto shrink-0 pl-2">
+                            <div class="w-16">
+                                <p class="text-[11px] font-bold text-indigo-500 mb-0.5 truncate">${s.name || '解析中'}</p>
+                                <h2 class="text-2xl font-black text-slate-900 leading-none">${s.symbol}</h2>
                             </div>
-                            <div class="text-right">
-                                <div class="text-2xl font-black ${c >= 0 ? 'text-red-500' : 'text-green-600'}">${s.price}</div>
-                                <div class="text-[10px] font-black ${c >= 0 ? 'text-red-400' : 'text-green-500'}">${c >= 0 ? '▲' : '▼'}${Math.abs(c)}%</div>
+                            <div class="w-20 text-right">
+                                <div class="text-xl font-black ${c >= 0 ? 'text-red-500' : 'text-green-600'} leading-none">${s.price}</div>
+                                <div class="text-[11px] font-black ${c >= 0 ? 'text-red-400' : 'text-green-500'}">${c >= 0 ? '▲' : '▼'}${Math.abs(c)}%</div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            ${[1,2,3].map(i => `
-                                <div class="py-3 rounded-xl text-center border-2 ${check(s['number'+i])}">
-                                    <div class="text-[10px] font-bold opacity-40 mb-1">目標 ${i}</div>
-                                    <div class="text-lg font-black">${s['number'+i] || '--'}</div>
+
+                        <div class="flex flex-wrap md:flex-nowrap gap-2 w-full flex-1 justify-end items-center">
+                            ${[1,2,3,4,5].map(i => `
+                                <div class="flex-1 min-w-[45px] max-w-[80px] py-1.5 rounded-lg text-center border-2 ${check(s['number'+i])}">
+                                    <div class="text-[9px] font-bold opacity-40 mb-0.5">目標 ${i}</div>
+                                    <div class="text-sm font-black">${s['number'+i] || '--'}</div>
                                 </div>`).join('')}
-                        </div>`;
-                    container.appendChild(card);
+                            
+                            <button onclick="event.stopPropagation(); deleteStock('${s.symbol}')" class="ml-2 w-8 h-8 rounded-full text-slate-300 hover:bg-red-50 hover:text-red-500 font-bold transition flex items-center justify-center">✕</button>
+                        </div>
+                    `;
+                    container.appendChild(row);
                 });
             } catch(e) { console.error("Update error"); }
+        }
+
+        // --- 新功能：點擊列帶入資料 ---
+        function loadToEdit(symbol, n1, n2, n3, n4, n5) {
+            document.getElementById('new-symbol').value = symbol;
+            document.getElementById('p1').value = n1 || '';
+            document.getElementById('p2').value = n2 || '';
+            document.getElementById('p3').value = n3 || '';
+            document.getElementById('p4').value = n4 || '';
+            document.getElementById('p5').value = n5 || '';
+            
+            // 讓輸入框閃爍一下提示使用者
+            const editSection = document.getElementById('edit-section');
+            editSection.classList.add('ring-4', 'ring-indigo-100');
+            setTimeout(() => editSection.classList.remove('ring-4', 'ring-indigo-100'), 400);
+            
+            // 螢幕平滑滾動到最上面
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         async function saveStock() {
@@ -91,14 +129,22 @@
             if(!symbol) return alert("請輸入代號");
             const res = await fetch(API_URL);
             let stocks = await res.json();
-            const newEntry = { symbol: symbol, number1: document.getElementById('p1').value, number2: document.getElementById('p2').value, number3: document.getElementById('p3').value };
-            stocks = stocks.filter(s => s.symbol !== symbol); stocks.push(newEntry);
+            const newEntry = { 
+                symbol: symbol, 
+                number1: document.getElementById('p1').value, 
+                number2: document.getElementById('p2').value, 
+                number3: document.getElementById('p3').value,
+                number4: document.getElementById('p4').value, // 新增
+                number5: document.getElementById('p5').value  // 新增
+            };
+            stocks = stocks.filter(s => s.symbol !== symbol); 
+            stocks.push(newEntry);
             await fetch(API_URL, { method: "POST", body: JSON.stringify({ data: stocks }) });
             location.reload();
         }
 
         async function deleteStock(symbol) {
-            if(!confirm(`刪除 ${symbol}?`)) return;
+            if(!confirm(`確定要刪除 ${symbol} 嗎?`)) return;
             const res = await fetch(API_URL);
             let stocks = await res.json();
             stocks = stocks.filter(s => s.symbol !== symbol);
