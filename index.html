@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>盤後分析與策略監控</title>
+    <title>那魯灣那魯土那魯佛那魯財進門</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -21,7 +21,7 @@
             padding: 0;
             display: flex;
             justify-content: center;
-            padding-bottom: 80px; /* 預留給浮動按鈕的空間 */
+            padding-bottom: 80px; 
         }
         .app-container {
             width: 100%;
@@ -35,7 +35,6 @@
             margin: 10px 0 20px 0;
             text-align: center;
         }
-        /* 股票卡片樣式 */
         .stock-card {
             background-color: var(--card-bg);
             border-radius: 12px;
@@ -72,14 +71,13 @@
         
         .stock-price-group {
             text-align: right;
-            padding-right: 25px; /* 避開刪除按鈕 */
+            padding-right: 25px; 
         }
         .price { font-size: 22px; font-weight: bold; }
         .change { font-size: 14px; font-weight: bold; }
         .is-up { color: var(--up-color); }
         .is-down { color: var(--down-color); }
 
-        /* 三個自訂欄位樣式 */
         .custom-fields {
             display: flex;
             flex-direction: column;
@@ -105,7 +103,6 @@
             background-color: #fafafa;
         }
         
-        /* 浮動新增按鈕 (+) */
         .fab {
             position: fixed;
             bottom: 30px;
@@ -126,7 +123,6 @@
             z-index: 100;
         }
 
-        /* 彈出視窗 (Modal) */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -143,7 +139,7 @@
             width: 90%;
             max-width: 320px;
         }
-        .modal-content h3 { margin-top: 0; }
+        .modal-content h3 { margin-top: 0; margin-bottom: 20px; }
         .modal-content input {
             width: 100%;
             padding: 10px;
@@ -152,6 +148,11 @@
             border-radius: 6px;
             box-sizing: border-box;
             font-size: 16px;
+            text-transform: uppercase;
+        }
+        .modal-content input::placeholder {
+            text-transform: none;
+            color: #999;
         }
         .modal-btns {
             display: flex;
@@ -167,6 +168,7 @@
         }
         .btn-cancel { background: #eee; color: #333; }
         .btn-confirm { background: var(--primary); color: white; }
+        .btn-confirm:disabled { background: #888; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -183,17 +185,16 @@
 <div class="modal-overlay" id="addModal">
     <div class="modal-content">
         <h3>新增追蹤股票</h3>
-        <input type="text" id="newSymbol" placeholder="輸入股號 (例: 2330)" autocomplete="off">
-        <input type="text" id="newName" placeholder="輸入股名 (例: 台積電)" autocomplete="off">
+        <input type="text" id="newSymbol" placeholder="輸入股號 (例: MSTR 或 6209)" autocomplete="off">
+        <input type="text" id="newName" placeholder="股名 (選填，留空將自動抓取)" autocomplete="off">
         <div class="modal-btns">
             <button class="btn-cancel" onclick="closeModal()">取消</button>
-            <button class="btn-confirm" onclick="addNewStock()">加入</button>
+            <button class="btn-confirm" id="confirmAddBtn" onclick="addNewStock()">加入</button>
         </div>
     </div>
 </div>
 
 <script>
-    // 預設資料或從 localStorage 讀取
     let stockData = JSON.parse(localStorage.getItem('myStocks')) || [
         { 
             id: Date.now().toString(),
@@ -207,47 +208,60 @@
         }
     ];
 
-    // 儲存資料到瀏覽器
     function saveData() {
         localStorage.setItem('myStocks', JSON.stringify(stockData));
     }
 
-    // 核心：真實抓取即時股價與漲幅的非同步函式 (完全捨棄後端)
+    // 負責單一 API 請求的核心函式 (新增回傳 name)
+    async function fetchYahooAPI(symbolWithSuffix) {
+        const timestamp = new Date().getTime(); 
+        const proxyUrl = 'https://api.allorigins.win/raw?url=';
+        const targetUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbolWithSuffix}?interval=1d&range=1d&t=${timestamp}`);
+        
+        const response = await fetch(proxyUrl + targetUrl);
+        if (!response.ok) throw new Error('API 連線失敗');
+        
+        const data = await response.json();
+        
+        if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
+            throw new Error('找不到該股票資料');
+        }
+
+        const meta = data.chart.result[0].meta;
+        const currentPrice = meta.regularMarketPrice.toFixed(2);
+        const previousClose = meta.chartPreviousClose;
+        const changeNum = (((currentPrice - previousClose) / previousClose) * 100).toFixed(2);
+        
+        // 抓取 API 提供的簡稱或全名
+        const fetchedName = meta.shortName || meta.longName || symbolWithSuffix;
+        
+        return { price: currentPrice, change: changeNum, name: fetchedName };
+    }
+
+    // 處理台股上市/上櫃自動偵測的包裹函式
     async function fetchRealPrice(symbol) {
         try {
-            // 自動補上台股後綴，以符合 Yahoo Finance 格式
-            const yfSymbol = symbol.includes('.') ? symbol : `${symbol}.TW`;
-            
-            // 使用免費代理服務解決前端跨網域請求 (CORS) 限制
-            const proxyUrl = 'https://api.allorigins.win/raw?url=';
-            const targetUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${yfSymbol}?interval=1d&range=1d`);
-            
-            const response = await fetch(proxyUrl + targetUrl);
-            if (!response.ok) throw new Error('API 請求失敗');
-            
-            const data = await response.json();
-            
-            // 解析回傳的 JSON 資料結構
-            const meta = data.chart.result[0].meta;
-            const currentPrice = meta.regularMarketPrice.toFixed(2);
-            const previousClose = meta.chartPreviousClose;
-            
-            // 計算漲跌幅 %
-            const changeNum = (((currentPrice - previousClose) / previousClose) * 100).toFixed(2);
-            
-            return { price: currentPrice, change: changeNum };
+            if (symbol.includes('.')) {
+                return await fetchYahooAPI(symbol);
+            }
+
+            try {
+                return await fetchYahooAPI(`${symbol}.TW`);
+            } catch (error) {
+                console.log(`${symbol} 不是上市，嘗試搜尋上櫃...`);
+                return await fetchYahooAPI(`${symbol}.TWO`);
+            }
         } catch (error) {
-            console.error(`抓取 ${symbol} 股價發生錯誤:`, error);
-            return { price: '---', change: '---' }; // 失敗時顯示橫線
+            console.error(`最終無法抓取 ${symbol} 的股價:`, error);
+            return { price: '---', change: '---', name: symbol }; 
         }
     }
 
-    // 渲染畫面主程式
     async function renderList() {
         const listContainer = document.getElementById('stockList');
         listContainer.innerHTML = '';
 
-        // 第一階段：立即畫出 UI 骨架與自訂欄位，確保不卡畫面
+        // 階段一：畫出骨架
         stockData.forEach((stock) => {
             const cardHtml = `
                 <div class="stock-card" id="card-${stock.id}">
@@ -283,7 +297,7 @@
             listContainer.innerHTML += cardHtml;
         });
 
-        // 第二階段：背景去網路抓取每一檔股價，抓到後動態更新數字
+        // 階段二：精準抓取最新資料
         for (const stock of stockData) {
             const data = await fetchRealPrice(stock.symbol);
             
@@ -308,7 +322,6 @@
         }
     }
 
-    // 更新自訂欄位資料並自動存檔
     function updateField(stockId, fieldIndex, fieldType, value) {
         const stock = stockData.find(s => s.id === stockId);
         if (stock) {
@@ -317,55 +330,81 @@
         }
     }
 
-    // 刪除股票
     function deleteStock(stockId) {
         if(confirm('確定要移除這檔股票嗎？')) {
             stockData = stockData.filter(s => s.id !== stockId);
             saveData();
-            // 重新載入畫面
             renderList();
         }
     }
 
-    // 彈出視窗控制
     function openModal() {
         document.getElementById('addModal').style.display = 'flex';
         document.getElementById('newSymbol').value = '';
         document.getElementById('newName').value = '';
+        // 重置按鈕狀態
+        const confirmBtn = document.getElementById('confirmAddBtn');
+        confirmBtn.innerText = '加入';
+        confirmBtn.disabled = false;
     }
 
     function closeModal() {
         document.getElementById('addModal').style.display = 'none';
     }
 
-    // 新增股票至清單
-    function addNewStock() {
-        const symbol = document.getElementById('newSymbol').value.trim();
-        const name = document.getElementById('newName').value.trim();
+    // 升級版的新增邏輯：非同步抓取股名
+    async function addNewStock() {
+        const symbolInput = document.getElementById('newSymbol').value.trim().toUpperCase();
+        let nameInput = document.getElementById('newName').value.trim();
 
-        if (!symbol || !name) {
-            alert('請完整填寫股號與股名！');
+        if (!symbolInput) {
+            alert('請至少輸入股號！');
             return;
         }
 
-        const newStock = {
-            id: Date.now().toString(),
-            symbol: symbol,
-            name: name,
-            fields: [
-                { date: '', number: '' },
-                { date: '', number: '' },
-                { date: '', number: '' }
-            ]
-        };
+        const confirmBtn = document.getElementById('confirmAddBtn');
+        confirmBtn.innerText = '抓取中...';
+        confirmBtn.disabled = true;
 
-        stockData.unshift(newStock); // 將新股票放在最上方
-        saveData();
-        renderList();
-        closeModal();
+        try {
+            // 先去網路抓這檔股票的資料，順便拿股名
+            const data = await fetchRealPrice(symbolInput);
+            
+            if (data.price === '---') {
+                alert('找不到此股票代號，請確認是否輸入正確。');
+                confirmBtn.innerText = '加入';
+                confirmBtn.disabled = false;
+                return;
+            }
+
+            // 如果使用者沒有自己填股名，就用 API 抓回來的名字
+            if (!nameInput) {
+                nameInput = data.name;
+            }
+
+            const newStock = {
+                id: Date.now().toString(),
+                symbol: symbolInput,
+                name: nameInput,
+                fields: [
+                    { date: '', number: '' },
+                    { date: '', number: '' },
+                    { date: '', number: '' }
+                ]
+            };
+
+            stockData.unshift(newStock); 
+            saveData();
+            renderList();
+            closeModal();
+
+        } catch (error) {
+            alert('連線發生錯誤，請稍後再試。');
+            confirmBtn.innerText = '加入';
+            confirmBtn.disabled = false;
+        }
     }
 
-    // 網頁載入完成後立刻執行渲染
     window.onload = renderList;
 </script>
 
