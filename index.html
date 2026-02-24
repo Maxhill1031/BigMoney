@@ -1,173 +1,373 @@
-// 預設資料或從 localStorage 讀取
-let stockData = JSON.parse(localStorage.getItem('myStocks')) || [
-    { 
-        id: Date.now().toString(),
-        symbol: '2330', 
-        name: '台積電', 
-        fields: [
-            { date: '', number: '' },
-            { date: '', number: '' },
-            { date: '', number: '' }
-        ]
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>盤後分析與策略監控</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-main: #1c1e21;
+            --text-sub: #65676b;
+            --up-color: #e23c39; /* 台股漲為紅色 */
+            --down-color: #118844; /* 台股跌為綠色 */
+            --primary: #0064d2;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            padding-bottom: 80px; /* 預留給浮動按鈕的空間 */
+        }
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 22px;
+            color: var(--text-main);
+            margin: 10px 0 20px 0;
+            text-align: center;
+        }
+        /* 股票卡片樣式 */
+        .stock-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        .delete-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: #ccc;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+        }
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .stock-name-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .symbol { font-size: 14px; color: var(--text-sub); }
+        .name { font-size: 20px; font-weight: bold; color: var(--text-main); }
+        
+        .stock-price-group {
+            text-align: right;
+            padding-right: 25px; /* 避開刪除按鈕 */
+        }
+        .price { font-size: 22px; font-weight: bold; }
+        .change { font-size: 14px; font-weight: bold; }
+        .is-up { color: var(--up-color); }
+        .is-down { color: var(--down-color); }
+
+        /* 三個自訂欄位樣式 */
+        .custom-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .field-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .field-label {
+            font-size: 14px;
+            color: var(--text-sub);
+            width: 20px;
+            font-weight: bold;
+        }
+        input[type="date"], input[type="number"] {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: #fafafa;
+        }
+        
+        /* 浮動新增按鈕 (+) */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 50%;
+            transform: translateX(50%);
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            background-color: var(--primary);
+            color: white;
+            font-size: 32px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0, 100, 210, 0.4);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        /* 彈出視窗 (Modal) */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 320px;
+        }
+        .modal-content h3 { margin-top: 0; }
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .modal-btns {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .modal-btns button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .btn-cancel { background: #eee; color: #333; }
+        .btn-confirm { background: var(--primary); color: white; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h1>📈 盤後分析監控</h1>
+    
+    <div id="stockList">
+        </div>
+</div>
+
+<button class="fab" onclick="openModal()">+</button>
+
+<div class="modal-overlay" id="addModal">
+    <div class="modal-content">
+        <h3>新增追蹤股票</h3>
+        <input type="text" id="newSymbol" placeholder="輸入股號 (例: 2330)" autocomplete="off">
+        <input type="text" id="newName" placeholder="輸入股名 (例: 台積電)" autocomplete="off">
+        <div class="modal-btns">
+            <button class="btn-cancel" onclick="closeModal()">取消</button>
+            <button class="btn-confirm" onclick="addNewStock()">加入</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 預設資料或從 localStorage 讀取
+    let stockData = JSON.parse(localStorage.getItem('myStocks')) || [
+        { 
+            id: Date.now().toString(),
+            symbol: '2330', 
+            name: '台積電', 
+            fields: [
+                { date: '', number: '' },
+                { date: '', number: '' },
+                { date: '', number: '' }
+            ]
+        }
+    ];
+
+    // 儲存資料到瀏覽器
+    function saveData() {
+        localStorage.setItem('myStocks', JSON.stringify(stockData));
     }
-];
 
-// 儲存資料到瀏覽器
-function saveData() {
-    localStorage.setItem('myStocks', JSON.stringify(stockData));
-}
-
-// 核心：真實抓取即時股價與漲幅的非同步函式
-async function fetchRealPrice(symbol) {
-    try {
-        // 台股在 Yahoo API 的格式通常為 股號.TW (上市) 或 股號.TWO (上櫃)
-        // 為簡化示範，若您未輸入後綴，程式自動補上 .TW
-        const yfSymbol = symbol.includes('.') ? symbol : `${symbol}.TW`;
-        
-        // 使用免費的 CORS 代理服務來繞過瀏覽器跨域限制，取得 Yahoo Finance 資料
-        const proxyUrl = 'https://api.allorigins.win/raw?url=';
-        const targetUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${yfSymbol}?interval=1d&range=1d`);
-        
-        const response = await fetch(proxyUrl + targetUrl);
-        if (!response.ok) throw new Error('API 請求失敗');
-        
-        const data = await response.json();
-        
-        // 解析回傳的 JSON 資料結構
-        const meta = data.chart.result[0].meta;
-        const currentPrice = meta.regularMarketPrice.toFixed(2);
-        const previousClose = meta.chartPreviousClose;
-        
-        // 計算漲跌幅 %
-        const changeNum = (((currentPrice - previousClose) / previousClose) * 100).toFixed(2);
-        
-        return { price: currentPrice, change: changeNum };
-    } catch (error) {
-        console.error(`抓取 ${symbol} 股價發生錯誤:`, error);
-        return { price: '---', change: '---' }; // 抓取失敗時顯示橫線
-    }
-}
-
-// 渲染畫面主程式
-async function renderList() {
-    const listContainer = document.getElementById('stockList');
-    listContainer.innerHTML = '';
-
-    // 第一階段：先畫出所有股票卡片的骨架與自訂欄位，股價先顯示「載入中...」
-    stockData.forEach((stock) => {
-        const cardHtml = `
-            <div class="stock-card" id="card-${stock.id}">
-                <button class="delete-btn" onclick="deleteStock('${stock.id}')">✕</button>
-                
-                <div class="stock-header">
-                    <div class="stock-name-group">
-                        <span class="symbol">${stock.symbol}</span>
-                        <span class="name">${stock.name}</span>
-                    </div>
-                    <div class="stock-price-group">
-                        <div class="price" id="price-${stock.id}">載入中...</div>
-                        <div class="change" id="change-${stock.id}"></div>
-                    </div>
-                </div>
-
-                <div class="custom-fields">
-                    ${[0, 1, 2].map(i => `
-                        <div class="field-row">
-                            <span class="field-label">${i+1}.</span>
-                            <input type="date" 
-                                   value="${stock.fields[i]?.date || ''}" 
-                                   onchange="updateField('${stock.id}', ${i}, 'date', this.value)">
-                            <input type="number" 
-                                   placeholder="輸入數值" 
-                                   value="${stock.fields[i]?.number || ''}" 
-                                   onchange="updateField('${stock.id}', ${i}, 'number', this.value)">
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-        listContainer.innerHTML += cardHtml;
-    });
-
-    // 第二階段：非同步去網路抓取每一檔真實股價，抓到後自動更新畫面上的數字
-    for (const stock of stockData) {
-        const data = await fetchRealPrice(stock.symbol);
-        
-        const priceElement = document.getElementById(`price-${stock.id}`);
-        const changeElement = document.getElementById(`change-${stock.id}`);
-        
-        if (data.price !== '---') {
-            const isUp = parseFloat(data.change) > 0;
-            const priceClass = isUp ? 'is-up' : 'is-down';
-            const changeSign = isUp ? '+' : '';
-
-            priceElement.innerText = data.price;
-            priceElement.className = `price ${priceClass}`;
+    // 核心：真實抓取即時股價與漲幅的非同步函式 (完全捨棄後端)
+    async function fetchRealPrice(symbol) {
+        try {
+            // 自動補上台股後綴，以符合 Yahoo Finance 格式
+            const yfSymbol = symbol.includes('.') ? symbol : `${symbol}.TW`;
             
-            changeElement.innerText = `${changeSign}${data.change}%`;
-            changeElement.className = `change ${priceClass}`;
-        } else {
-            priceElement.innerText = '查無報價';
-            priceElement.style.fontSize = '14px';
-            priceElement.style.color = '#999';
+            // 使用免費代理服務解決前端跨網域請求 (CORS) 限制
+            const proxyUrl = 'https://api.allorigins.win/raw?url=';
+            const targetUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${yfSymbol}?interval=1d&range=1d`);
+            
+            const response = await fetch(proxyUrl + targetUrl);
+            if (!response.ok) throw new Error('API 請求失敗');
+            
+            const data = await response.json();
+            
+            // 解析回傳的 JSON 資料結構
+            const meta = data.chart.result[0].meta;
+            const currentPrice = meta.regularMarketPrice.toFixed(2);
+            const previousClose = meta.chartPreviousClose;
+            
+            // 計算漲跌幅 %
+            const changeNum = (((currentPrice - previousClose) / previousClose) * 100).toFixed(2);
+            
+            return { price: currentPrice, change: changeNum };
+        } catch (error) {
+            console.error(`抓取 ${symbol} 股價發生錯誤:`, error);
+            return { price: '---', change: '---' }; // 失敗時顯示橫線
         }
     }
-}
 
-// 更新自訂欄位資料並自動存檔
-function updateField(stockId, fieldIndex, fieldType, value) {
-    const stock = stockData.find(s => s.id === stockId);
-    if (stock) {
-        stock.fields[fieldIndex][fieldType] = value;
-        saveData();
+    // 渲染畫面主程式
+    async function renderList() {
+        const listContainer = document.getElementById('stockList');
+        listContainer.innerHTML = '';
+
+        // 第一階段：立即畫出 UI 骨架與自訂欄位，確保不卡畫面
+        stockData.forEach((stock) => {
+            const cardHtml = `
+                <div class="stock-card" id="card-${stock.id}">
+                    <button class="delete-btn" onclick="deleteStock('${stock.id}')">✕</button>
+                    
+                    <div class="stock-header">
+                        <div class="stock-name-group">
+                            <span class="symbol">${stock.symbol}</span>
+                            <span class="name">${stock.name}</span>
+                        </div>
+                        <div class="stock-price-group">
+                            <div class="price" id="price-${stock.id}">載入中...</div>
+                            <div class="change" id="change-${stock.id}"></div>
+                        </div>
+                    </div>
+
+                    <div class="custom-fields">
+                        ${[0, 1, 2].map(i => `
+                            <div class="field-row">
+                                <span class="field-label">${i+1}.</span>
+                                <input type="date" 
+                                       value="${stock.fields[i]?.date || ''}" 
+                                       onchange="updateField('${stock.id}', ${i}, 'date', this.value)">
+                                <input type="number" 
+                                       placeholder="輸入數值" 
+                                       value="${stock.fields[i]?.number || ''}" 
+                                       onchange="updateField('${stock.id}', ${i}, 'number', this.value)">
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            listContainer.innerHTML += cardHtml;
+        });
+
+        // 第二階段：背景去網路抓取每一檔股價，抓到後動態更新數字
+        for (const stock of stockData) {
+            const data = await fetchRealPrice(stock.symbol);
+            
+            const priceElement = document.getElementById(`price-${stock.id}`);
+            const changeElement = document.getElementById(`change-${stock.id}`);
+            
+            if (data.price !== '---') {
+                const isUp = parseFloat(data.change) > 0;
+                const priceClass = isUp ? 'is-up' : 'is-down';
+                const changeSign = isUp ? '+' : '';
+
+                priceElement.innerText = data.price;
+                priceElement.className = `price ${priceClass}`;
+                
+                changeElement.innerText = `${changeSign}${data.change}%`;
+                changeElement.className = `change ${priceClass}`;
+            } else {
+                priceElement.innerText = '查無報價';
+                priceElement.style.fontSize = '14px';
+                priceElement.style.color = '#999';
+            }
+        }
     }
-}
 
-// 刪除股票
-function deleteStock(stockId) {
-    if(confirm('確定要移除這檔股票嗎？')) {
-        stockData = stockData.filter(s => s.id !== stockId);
+    // 更新自訂欄位資料並自動存檔
+    function updateField(stockId, fieldIndex, fieldType, value) {
+        const stock = stockData.find(s => s.id === stockId);
+        if (stock) {
+            stock.fields[fieldIndex][fieldType] = value;
+            saveData();
+        }
+    }
+
+    // 刪除股票
+    function deleteStock(stockId) {
+        if(confirm('確定要移除這檔股票嗎？')) {
+            stockData = stockData.filter(s => s.id !== stockId);
+            saveData();
+            // 重新載入畫面
+            renderList();
+        }
+    }
+
+    // 彈出視窗控制
+    function openModal() {
+        document.getElementById('addModal').style.display = 'flex';
+        document.getElementById('newSymbol').value = '';
+        document.getElementById('newName').value = '';
+    }
+
+    function closeModal() {
+        document.getElementById('addModal').style.display = 'none';
+    }
+
+    // 新增股票至清單
+    function addNewStock() {
+        const symbol = document.getElementById('newSymbol').value.trim();
+        const name = document.getElementById('newName').value.trim();
+
+        if (!symbol || !name) {
+            alert('請完整填寫股號與股名！');
+            return;
+        }
+
+        const newStock = {
+            id: Date.now().toString(),
+            symbol: symbol,
+            name: name,
+            fields: [
+                { date: '', number: '' },
+                { date: '', number: '' },
+                { date: '', number: '' }
+            ]
+        };
+
+        stockData.unshift(newStock); // 將新股票放在最上方
         saveData();
         renderList();
-    }
-}
-
-// Modal 控制與新增功能
-function openModal() {
-    document.getElementById('addModal').style.display = 'flex';
-    document.getElementById('newSymbol').value = '';
-    document.getElementById('newName').value = '';
-}
-
-function closeModal() {
-    document.getElementById('addModal').style.display = 'none';
-}
-
-function addNewStock() {
-    const symbol = document.getElementById('newSymbol').value.trim();
-    const name = document.getElementById('newName').value.trim();
-
-    if (!symbol || !name) {
-        alert('請完整填寫股號與股名！');
-        return;
+        closeModal();
     }
 
-    const newStock = {
-        id: Date.now().toString(),
-        symbol: symbol,
-        name: name,
-        fields: [
-            { date: '', number: '' },
-            { date: '', number: '' },
-            { date: '', number: '' }
-        ]
-    };
+    // 網頁載入完成後立刻執行渲染
+    window.onload = renderList;
+</script>
 
-    stockData.unshift(newStock); 
-    saveData();
-    renderList();
-    closeModal();
-}
-
-// 網頁載入時立刻執行渲染與抓取
-window.onload = renderList;
+</body>
+</html>
