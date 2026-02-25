@@ -61,6 +61,7 @@
     </main>
 
     <script>
+        // 這是您提供的最新 API 網址
         const API_URL = "https://script.google.com/macros/s/AKfycbxesUh4CD4Z1QYzB3hGB60l9JYK3Gj36OQB4jDeXk8fxqKrhaB6ehhknRbg6RVZ41uc/exec";
 
         async function init() {
@@ -88,7 +89,7 @@
                                 <div class="w-auto md:w-24 text-left text-xl md:text-2xl font-black text-slate-900">${s.symbol}</div>
                             </div>
                             <div class="flex items-center text-right">
-                                <div class="w-auto md:w-32 text-xl md:text-2xl font-black text-slate-800 md:pr-6">${s.price}</div>
+                                <div class="w-auto md:w-32 text-xl md:text-2xl font-black text-slate-800 md:pr-6">${s.price || '--'}</div>
                             </div>
                         </div>
                         <div class="flex w-full md:flex-1 items-center gap-1.5 md:gap-2">
@@ -105,7 +106,10 @@
                     `;
                     container.appendChild(row);
                 });
-            } catch(e) { console.error("Update error"); }
+            } catch(e) { 
+                console.error("Update error", e); 
+                document.getElementById('stock-list').innerHTML = '<p class="text-center text-red-500 font-bold py-10">資料讀取失敗，請確認 Google 試算表欄位是否正確或 API 是否已開啟權限</p>';
+            }
         }
 
         function loadToEdit(symbol, n1, n2, n3, n4, n5) {
@@ -122,7 +126,6 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // --- 全新安全防線：只送出單筆資料，不覆寫全部 ---
         async function saveStock() {
             const symbol = document.getElementById('new-symbol').value.trim();
             if(!symbol) return alert("請輸入代號");
@@ -131,37 +134,4 @@
                 symbol: symbol, 
                 number1: document.getElementById('p1').value, 
                 number2: document.getElementById('p2').value, 
-                number3: document.getElementById('p3').value,
-                number4: document.getElementById('p4').value,
-                number5: document.getElementById('p5').value 
-            };
-
-            // 指定動作為 save，並只傳送那一檔股票的資料
-            await fetch(API_URL, { 
-                method: "POST", 
-                body: JSON.stringify({ action: "save", data: newEntry }) 
-            });
-            location.reload();
-        }
-
-        // --- 刪除防線：只送出要刪除的代號 ---
-        async function deleteStock(symbol) {
-            if(!confirm(`確定要刪除 ${symbol} 嗎?`)) return;
-            
-            // 指定動作為 delete，並只傳送要刪除的代號
-            await fetch(API_URL, { 
-                method: "POST", 
-                body: JSON.stringify({ action: "delete", symbol: symbol }) 
-            });
-            location.reload();
-        }
-
-        init();
-        setInterval(init, 300000); 
-    </script>
-</body>
-</html>
-
-
-
-
+                number3:
