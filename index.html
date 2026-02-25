@@ -3,168 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>那魯灣那魯土那魯佛那魯財進門</title>
+    <title>股票監控系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f1f5f9; }
-        .price-reached { background-color: #fee2e2; color: #b91c1c; border: 2px solid #ef4444 !important; }
-        .reached-anim { animation: pulse-red 1.2s infinite; }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .reached { background-color: #fee2e2; color: #b91c1c; border: 2px solid #ef4444 !important; }
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
-<body class="pb-12">
+<body class="pb-10">
 
-    <nav class="bg-slate-900 p-3 text-white shadow-lg sticky top-0 z-50 border-b-2 border-yellow-500 text-center">
-        <h1 class="text-base md:text-lg font-black tracking-widest text-yellow-400">那魯灣那魯土那魯佛那魯財進門</h1>
+    <nav class="bg-slate-900 p-3 text-white shadow-lg sticky top-0 z-50 border-b-2 border-yellow-500 text-center text-lg font-black text-yellow-400">
+        那魯灣那魯土那魯佛那魯財進門
     </nav>
 
-    <main class="max-w-7xl mx-auto p-3 md:p-4">
-        <div id="edit-section" class="bg-white p-3 md:p-4 rounded-xl shadow-sm mb-4 md:mb-6 border border-slate-200 transition-all">
-            <div class="flex flex-col md:flex-row gap-3 md:gap-4 items-end">
-                <div class="flex w-full md:w-auto md:flex-[1.2] items-end gap-3">
-                    <div class="flex-1">
-                        <label class="block text-[10px] font-bold text-indigo-500 mb-0.5">股票代號</label>
-                        <input type="text" id="new-symbol" placeholder="代號" class="border-b-2 border-slate-200 py-1 w-full font-black text-xl md:text-2xl outline-none focus:border-indigo-500 text-slate-800 bg-transparent">
-                    </div>
-                    <button onclick="saveStock()" class="md:hidden bg-indigo-600 text-white px-4 py-1.5 rounded-lg font-black hover:bg-indigo-700 transition shadow-sm text-sm h-[36px]">儲存</button>
+    <main class="max-w-7xl mx-auto p-4">
+        <div class="bg-white p-4 rounded-xl shadow-sm mb-6 border border-slate-200">
+            <div class="flex flex-col md:flex-row gap-4 items-end">
+                <div class="flex-1 w-full">
+                    <label class="block text-[10px] font-bold text-indigo-500 mb-1">股票代號</label>
+                    <input type="text" id="symbol" placeholder="代號" class="border-b-2 border-slate-200 py-1 w-full font-black text-2xl outline-none focus:border-indigo-500 bg-transparent">
                 </div>
-                <div class="flex w-full flex-1 gap-1.5 md:gap-3 items-end">
-                    <div class="flex-1"><label class="block text-[9px] md:text-[10px] font-bold text-slate-400 mb-0.5 text-center md:text-left">T1</label><input type="number" id="p1" class="border-b-2 border-slate-100 py-1 w-full font-black text-base md:text-xl outline-none focus:border-yellow-400 text-center md:text-left bg-transparent px-0"></div>
-                    <div class="flex-1"><label class="block text-[9px] md:text-[10px] font-bold text-slate-400 mb-0.5 text-center md:text-left">T2</label><input type="number" id="p2" class="border-b-2 border-slate-100 py-1 w-full font-black text-base md:text-xl outline-none focus:border-yellow-400 text-center md:text-left bg-transparent px-0"></div>
-                    <div class="flex-1"><label class="block text-[9px] md:text-[10px] font-bold text-slate-400 mb-0.5 text-center md:text-left">T3</label><input type="number" id="p3" class="border-b-2 border-slate-100 py-1 w-full font-black text-base md:text-xl outline-none focus:border-yellow-400 text-center md:text-left bg-transparent px-0"></div>
-                    <div class="flex-1"><label class="block text-[9px] md:text-[10px] font-bold text-slate-400 mb-0.5 text-center md:text-left">T4</label><input type="number" id="p4" class="border-b-2 border-slate-100 py-1 w-full font-black text-base md:text-xl outline-none focus:border-yellow-400 text-center md:text-left bg-transparent px-0"></div>
-                    <div class="flex-1"><label class="block text-[9px] md:text-[10px] font-bold text-slate-400 mb-0.5 text-center md:text-left">T5</label><input type="number" id="p5" class="border-b-2 border-slate-100 py-1 w-full font-black text-base md:text-xl outline-none focus:border-yellow-400 text-center md:text-left bg-transparent px-0"></div>
+                <div class="flex-[3] flex w-full gap-2">
+                    <div class="flex-1 text-center"><label class="text-[9px] font-bold text-slate-400">T1</label><input type="number" id="n1" class="border-b-2 border-slate-100 py-1 w-full font-black text-center outline-none focus:border-yellow-400 bg-transparent"></div>
+                    <div class="flex-1 text-center"><label class="text-[9px] font-bold text-slate-400">T2</label><input type="number" id="n2" class="border-b-2 border-slate-100 py-1 w-full font-black text-center outline-none focus:border-yellow-400 bg-transparent"></div>
+                    <div class="flex-1 text-center"><label class="text-[9px] font-bold text-slate-400">T3</label><input type="number" id="n3" class="border-b-2 border-slate-100 py-1 w-full font-black text-center outline-none focus:border-yellow-400 bg-transparent"></div>
+                    <div class="flex-1 text-center"><label class="text-[9px] font-bold text-slate-400">T4</label><input type="number" id="n4" class="border-b-2 border-slate-100 py-1 w-full font-black text-center outline-none focus:border-yellow-400 bg-transparent"></div>
+                    <div class="flex-1 text-center"><label class="text-[9px] font-bold text-slate-400">T5</label><input type="number" id="n5" class="border-b-2 border-slate-100 py-1 w-full font-black text-center outline-none focus:border-yellow-400 bg-transparent"></div>
                 </div>
-                <button onclick="saveStock()" class="hidden md:block bg-indigo-600 text-white px-6 py-2 rounded-xl font-black hover:bg-indigo-700 transition shadow-md text-base">儲存/更新</button>
+                <button onclick="saveData()" class="w-full md:w-auto bg-indigo-600 text-white px-8 py-2 rounded-xl font-black hover:bg-indigo-700 transition shadow-md">儲存/更新</button>
             </div>
         </div>
 
-        <div class="hidden md:flex items-center text-center text-[12px] font-bold text-slate-400 mb-2 px-4">
-            <div class="w-32 text-left pl-2">股名</div>
-            <div class="w-24 text-left">股號</div>
-            <div class="w-32 text-right pr-6">報價</div>
-            <div class="flex-1">目標 1</div>
-            <div class="flex-1">目標 2</div>
-            <div class="flex-1">目標 3</div>
-            <div class="flex-1">目標 4</div>
-            <div class="flex-1">目標 5</div>
-            <div class="w-10">操作</div>
-        </div>
-
-        <div id="stock-list" class="space-y-3 md:space-y-2">
-            <p class="text-center text-slate-400 font-bold py-10" id="loading-msg">資料讀取中...</p>
+        <div id="display-list" class="space-y-3">
+            <p class="text-center text-slate-400 font-bold py-10">資料讀取中...</p>
         </div>
     </main>
 
     <script>
+        // 使用您測試成功的 API 網址
         const API_URL = "https://script.google.com/macros/s/AKfycbz51VWvVmkuPxq66-93j6VtzYt9NWgwc2D8yPYrW6-_4KJpo4ajK7_5BoxRRGXyJR5z/exec";
 
-        async function init() {
+        // 1. 從 Google Sheet 讀取資料
+        async function loadData() {
             try {
-                // 防彈機制 1：先抓純文字，避免 JSON 解析直接當機
-                const res = await fetch(API_URL + "?t=" + new Date().getTime());
-                const textData = await res.text();
+                // 完全採用 test3.html 成功的 fetch 邏輯
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                const listDiv = document.getElementById('display-list');
+                listDiv.innerHTML = "";
 
-                // 防彈機制 2：檢查 Google 是不是吐了登入畫面 (HTML) 給我們
-                if (textData.includes("<html") || textData.includes("<title>Google Drive")) {
-                    throw new Error("權限錯誤 (CORS)：Google 把程式擋在門外了！請回 Apps Script 確認「誰可以存取」是否設為「所有人 (Anyone)」。");
-                }
-
-                // 嘗試解析為 JSON
-                let myStocks;
-                try {
-                    myStocks = JSON.parse(textData);
-                } catch(e) {
-                    throw new Error("資料格式錯誤：試算表回傳的不是有效的資料。回傳內容前段：" + textData.substring(0, 50));
-                }
-
-                const container = document.getElementById('stock-list');
-                container.innerHTML = "";
-
-                // 防彈機制 3：強制把代號轉為字串，避免 localeCompare 當機
-                myStocks.sort((a,b) => String(a.symbol).localeCompare(String(b.symbol))).forEach(s => {
-                    const p = parseFloat(s.price) || 0;
-                    const check = (target) => {
-                        if (!target || isNaN(target)) return 'bg-slate-50 border-slate-100 text-slate-800';
-                        return p >= parseFloat(target) ? 'price-reached reached-anim border-red-500' : 'bg-slate-50 border-slate-100 text-slate-800';
+                data.forEach(item => {
+                    const price = parseFloat(item.price) || 0;
+                    const checkColor = (val) => {
+                        if (!val || isNaN(val)) return 'bg-slate-50 border-slate-100';
+                        return price >= parseFloat(val) ? 'reached' : 'bg-slate-50 border-slate-100';
                     };
 
-                    const row = document.createElement('div');
-                    row.className = "bg-white p-3 md:p-3 rounded-2xl md:rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-indigo-300 transition cursor-pointer flex flex-col md:flex-row items-center w-full gap-3 md:gap-2";
-                    row.onclick = () => loadToEdit(s.symbol, s.number1, s.number2, s.number3, s.number4, s.number5);
-                    
-                    row.innerHTML = `
-                        <div class="flex justify-between w-full md:w-auto items-center border-b border-slate-100 md:border-none pb-2 md:pb-0">
-                            <div class="flex items-center gap-3 md:gap-0">
-                                <div class="w-auto md:w-32 text-left text-xl md:text-2xl font-black text-indigo-600 truncate md:px-1">${s.name || '等待排程...'}</div>
-                                <div class="w-auto md:w-24 text-left text-xl md:text-2xl font-black text-slate-900">${s.symbol}</div>
+                    // 產生每一列股票 HTML
+                    listDiv.innerHTML += `
+                        <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center gap-3 cursor-pointer hover:border-indigo-400" onclick="fillForm('${item.symbol}','${item.number1}','${item.number2}','${item.number3}','${item.number4}','${item.number5}')">
+                            <div class="flex justify-between w-full md:w-auto items-center gap-4">
+                                <div class="w-24 text-xl font-black text-indigo-600 truncate">${item.name}</div>
+                                <div class="w-20 text-xl font-black text-slate-900">${item.symbol}</div>
+                                <div class="w-24 text-xl font-black text-right text-slate-800">${item.price}</div>
                             </div>
-                            <div class="flex items-center text-right">
-                                <div class="w-auto md:w-32 text-xl md:text-2xl font-black text-slate-800 md:pr-6">${s.price || '--'}</div>
-                            </div>
-                        </div>
-                        <div class="flex w-full md:flex-1 items-center gap-1.5 md:gap-2">
-                            ${[1,2,3,4,5].map(i => `
-                                <div class="flex-1 py-1.5 md:py-2 rounded-lg md:rounded-xl border-2 transition-colors text-center ${check(s['number'+i])}">
-                                    <div class="md:hidden text-[9px] font-bold opacity-40 mb-0.5">T${i}</div>
-                                    <div class="text-sm md:text-xl font-black">${s['number'+i] || '--'}</div>
-                                </div>
-                            `).join('')}
-                            <div class="w-8 md:w-10 flex justify-center shrink-0 pl-1 md:pl-0">
-                                <button onclick="event.stopPropagation(); deleteStock('${s.symbol}')" class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-slate-100 md:bg-transparent text-slate-400 hover:bg-red-50 hover:text-red-500 font-bold transition flex items-center justify-center">✕</button>
+                            <div class="flex w-full md:flex-1 gap-2">
+                                <div class="flex-1 py-2 rounded-xl border-2 text-center text-sm md:text-xl font-black ${checkColor(item.number1)}">${item.number1 || '--'}</div>
+                                <div class="flex-1 py-2 rounded-xl border-2 text-center text-sm md:text-xl font-black ${checkColor(item.number2)}">${item.number2 || '--'}</div>
+                                <div class="flex-1 py-2 rounded-xl border-2 text-center text-sm md:text-xl font-black ${checkColor(item.number3)}">${item.number3 || '--'}</div>
+                                <div class="flex-1 py-2 rounded-xl border-2 text-center text-sm md:text-xl font-black ${checkColor(item.number4)}">${item.number4 || '--'}</div>
+                                <div class="flex-1 py-2 rounded-xl border-2 text-center text-sm md:text-xl font-black ${checkColor(item.number5)}">${item.number5 || '--'}</div>
+                                <button onclick="event.stopPropagation(); deleteData('${item.symbol}')" class="px-2 text-slate-300 hover:text-red-500 font-bold">✕</button>
                             </div>
                         </div>
                     `;
-                    container.appendChild(row);
                 });
-            } catch(e) { 
-                console.error("Debug Error:", e);
-                document.getElementById('stock-list').innerHTML = `
-                    <div class="bg-red-50 border-2 border-red-500 rounded-xl p-6 max-w-2xl mx-auto mt-10 text-center">
-                        <h2 class="text-red-600 font-black text-2xl mb-4">⚠️ 抓到了！連線中斷</h2>
-                        <p class="text-red-500 font-bold text-left bg-white p-4 rounded border border-red-200">${e.message}</p>
-                        <p class="text-slate-600 font-bold mt-4">請截圖這個畫面給我，我們馬上就能修好！</p>
-                    </div>`;
+            } catch (err) {
+                document.getElementById('display-list').innerHTML = `<p class="text-center text-red-500 font-bold">讀取失敗：${err.message}</p>`;
             }
         }
 
-        function loadToEdit(symbol, n1, n2, n3, n4, n5) {
-            document.getElementById('new-symbol').value = symbol;
-            document.getElementById('p1').value = n1 || '';
-            document.getElementById('p2').value = n2 || '';
-            document.getElementById('p3').value = n3 || '';
-            document.getElementById('p4').value = n4 || '';
-            document.getElementById('p5').value = n5 || '';
+        // 2. 儲存到 Google Sheet
+        async function saveData() {
+            const sym = document.getElementById('symbol').value.trim();
+            if (!sym) return alert("請輸入股票代號");
+
+            const postData = {
+                action: "save",
+                data: {
+                    symbol: sym,
+                    number1: document.getElementById('n1').value,
+                    number2: document.getElementById('n2').value,
+                    number3: document.getElementById('n3').value,
+                    number4: document.getElementById('n4').value,
+                    number5: document.getElementById('n5').value
+                }
+            };
+
+            await fetch(API_URL, { method: "POST", body: JSON.stringify(postData) });
+            location.reload();
+        }
+
+        // 3. 刪除股票
+        async function deleteData(sym) {
+            if (!confirm(`確定要刪除 ${sym} 嗎？`)) return;
+            await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "delete", symbol: sym }) });
+            location.reload();
+        }
+
+        // 4. 點擊列表自動填入上方表格
+        function fillForm(s, n1, n2, n3, n4, n5) {
+            document.getElementById('symbol').value = s;
+            document.getElementById('n1').value = n1;
+            document.getElementById('n2').value = n2;
+            document.getElementById('n3').value = n3;
+            document.getElementById('n4').value = n4;
+            document.getElementById('n5').value = n5;
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        async function saveStock() {
-            const symbol = document.getElementById('new-symbol').value.trim();
-            if(!symbol) return alert("請輸入代號");
-            
-            const newEntry = { 
-                symbol: symbol, 
-                number1: document.getElementById('p1').value, number2: document.getElementById('p2').value, 
-                number3: document.getElementById('p3').value, number4: document.getElementById('p4').value, number5: document.getElementById('p5').value 
-            };
-            const btn = event.currentTarget;
-            btn.innerText = "寫入中..."; btn.disabled = true;
-            try {
-                await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "save", data: newEntry }) });
-            } catch(e) { alert("儲存失敗，請檢查網路"); } finally { location.reload(); }
-        }
-
-        async function deleteStock(symbol) {
-            if(!confirm(`確定要刪除 ${symbol} 嗎?`)) return;
-            try {
-                await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "delete", symbol: symbol }) });
-            } catch(e) {} finally { location.reload(); }
-        }
-
-        init();
-        setInterval(init, 300000); 
+        // 初始化
+        loadData();
     </script>
 </body>
 </html>
