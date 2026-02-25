@@ -11,9 +11,7 @@
         .price-reached { background-color: #fee2e2; color: #b91c1c; border: 2px solid #ef4444 !important; }
         .reached-anim { animation: pulse-red 1.2s infinite; }
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-        /* 隱藏數字輸入框的上下箭頭 */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body class="pb-12">
@@ -56,22 +54,37 @@
         </div>
 
         <div id="stock-list" class="space-y-3 md:space-y-2">
-            <p class="text-center text-slate-400 font-bold py-10">資料讀取中...</p>
+            <p class="text-center text-slate-400 font-bold py-10" id="loading-msg">資料讀取中...</p>
         </div>
     </main>
 
     <script>
-        // 這是您提供的最新 API 網址
         const API_URL = "https://script.google.com/macros/s/AKfycbz51VWvVmkuPxq66-93j6VtzYt9NWgwc2D8yPYrW6-_4KJpo4ajK7_5BoxRRGXyJR5z/exec";
 
         async function init() {
             try {
+                // 防彈機制 1：先抓純文字，避免 JSON 解析直接當機
                 const res = await fetch(API_URL + "?t=" + new Date().getTime());
-                const myStocks = await res.json();
+                const textData = await res.text();
+
+                // 防彈機制 2：檢查 Google 是不是吐了登入畫面 (HTML) 給我們
+                if (textData.includes("<html") || textData.includes("<title>Google Drive")) {
+                    throw new Error("權限錯誤 (CORS)：Google 把程式擋在門外了！請回 Apps Script 確認「誰可以存取」是否設為「所有人 (Anyone)」。");
+                }
+
+                // 嘗試解析為 JSON
+                let myStocks;
+                try {
+                    myStocks = JSON.parse(textData);
+                } catch(e) {
+                    throw new Error("資料格式錯誤：試算表回傳的不是有效的資料。回傳內容前段：" + textData.substring(0, 50));
+                }
+
                 const container = document.getElementById('stock-list');
                 container.innerHTML = "";
 
-                myStocks.sort((a,b) => a.symbol.localeCompare(b.symbol)).forEach(s => {
+                // 防彈機制 3：強制把代號轉為字串，避免 localeCompare 當機
+                myStocks.sort((a,b) => String(a.symbol).localeCompare(String(b.symbol))).forEach(s => {
                     const p = parseFloat(s.price) || 0;
                     const check = (target) => {
                         if (!target || isNaN(target)) return 'bg-slate-50 border-slate-100 text-slate-800';
@@ -85,7 +98,7 @@
                     row.innerHTML = `
                         <div class="flex justify-between w-full md:w-auto items-center border-b border-slate-100 md:border-none pb-2 md:pb-0">
                             <div class="flex items-center gap-3 md:gap-0">
-                                <div class="w-auto md:w-32 text-left text-xl md:text-2xl font-black text-indigo-600 truncate md:px-1">${s.name || '解析中'}</div>
+                                <div class="w-auto md:w-32 text-left text-xl md:text-2xl font-black text-indigo-600 truncate md:px-1">${s.name || '等待排程...'}</div>
                                 <div class="w-auto md:w-24 text-left text-xl md:text-2xl font-black text-slate-900">${s.symbol}</div>
                             </div>
                             <div class="flex items-center text-right">
@@ -107,8 +120,13 @@
                     container.appendChild(row);
                 });
             } catch(e) { 
-                console.error("Update error", e); 
-                document.getElementById('stock-list').innerHTML = '<p class="text-center text-red-500 font-bold py-10">資料讀取失敗，請確認 Google 試算表欄位是否正確或 API 是否已開啟權限</p>';
+                console.error("Debug Error:", e);
+                document.getElementById('stock-list').innerHTML = `
+                    <div class="bg-red-50 border-2 border-red-500 rounded-xl p-6 max-w-2xl mx-auto mt-10 text-center">
+                        <h2 class="text-red-600 font-black text-2xl mb-4">⚠️ 抓到了！連線中斷</h2>
+                        <p class="text-red-500 font-bold text-left bg-white p-4 rounded border border-red-200">${e.message}</p>
+                        <p class="text-slate-600 font-bold mt-4">請截圖這個畫面給我，我們馬上就能修好！</p>
+                    </div>`;
             }
         }
 
@@ -119,10 +137,6 @@
             document.getElementById('p3').value = n3 || '';
             document.getElementById('p4').value = n4 || '';
             document.getElementById('p5').value = n5 || '';
-            
-            const editSection = document.getElementById('edit-section');
-            editSection.classList.add('ring-4', 'ring-indigo-100');
-            setTimeout(() => editSection.classList.remove('ring-4', 'ring-indigo-100'), 400);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -132,7 +146,25 @@
             
             const newEntry = { 
                 symbol: symbol, 
-                number1: document.getElementById('p1').value, 
-                number2: document.getElementById('p2').value, 
-                number3:
+                number1: document.getElementById('p1').value, number2: document.getElementById('p2').value, 
+                number3: document.getElementById('p3').value, number4: document.getElementById('p4').value, number5: document.getElementById('p5').value 
+            };
+            const btn = event.currentTarget;
+            btn.innerText = "寫入中..."; btn.disabled = true;
+            try {
+                await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "save", data: newEntry }) });
+            } catch(e) { alert("儲存失敗，請檢查網路"); } finally { location.reload(); }
+        }
 
+        async function deleteStock(symbol) {
+            if(!confirm(`確定要刪除 ${symbol} 嗎?`)) return;
+            try {
+                await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "delete", symbol: symbol }) });
+            } catch(e) {} finally { location.reload(); }
+        }
+
+        init();
+        setInterval(init, 300000); 
+    </script>
+</body>
+</html>
