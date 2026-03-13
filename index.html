@@ -10,19 +10,30 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f1f5f9; }
         .reached { background-color: #fee2e2; color: #b91c1c; border: 2px solid #ef4444 !important; }
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        /* 頁籤樣式 */
+        .tab-btn { transition: all 0.3s ease; }
+        .tab-active { background-color: #eab308; color: #1e293b; border-color: #eab308; }
+        .tab-inactive { background-color: #1e293b; color: #94a3b8; border-color: #334155; }
     </style>
 </head>
 <body class="pb-10">
 
-    <nav class="bg-slate-900 p-3 text-white shadow-lg sticky top-0 z-50 border-b-2 border-yellow-500 text-center text-lg font-black text-yellow-400">
-        那魯灣那魯土那魯佛那魯財進門
+    <nav class="bg-slate-900 pt-3 shadow-lg sticky top-0 z-50 border-b-2 border-yellow-500">
+        <div class="text-center text-lg font-black text-yellow-400 mb-3">
+            那魯灣那魯土那魯佛那魯財進門
+        </div>
+        <div class="flex justify-center max-w-7xl mx-auto px-4 gap-1 md:gap-2">
+            <button onclick="switchTab('八爪賺大錢')" id="tab-八爪賺大錢" class="tab-btn tab-active flex-1 md:flex-none px-4 py-2 rounded-t-lg font-black text-sm md:text-base border-t-2 border-l-2 border-r-2">八爪賺大錢</button>
+            <button onclick="switchTab('喝茶趴賺大錢')" id="tab-喝茶趴賺大錢" class="tab-btn tab-inactive flex-1 md:flex-none px-4 py-2 rounded-t-lg font-black text-sm md:text-base border-t-2 border-l-2 border-r-2">喝茶趴賺大錢</button>
+            <button onclick="switchTab('路邊賺大錢')" id="tab-路邊賺大錢" class="tab-btn tab-inactive flex-1 md:flex-none px-4 py-2 rounded-t-lg font-black text-sm md:text-base border-t-2 border-l-2 border-r-2">路邊賺大錢</button>
+        </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto p-4">
+    <main class="max-w-7xl mx-auto p-4 mt-4">
         <div class="bg-white p-4 rounded-xl shadow-sm mb-6 border border-slate-200">
             <div class="flex flex-col md:flex-row gap-4 items-end">
                 <div class="flex-1 w-full">
-                    <label class="block text-[10px] font-bold text-indigo-500 mb-1">股票代號</label>
+                    <label class="block text-[10px] font-bold text-indigo-500 mb-1">股票代號 (<span id="current-tab-label" class="text-yellow-600">八爪賺大錢</span>)</label>
                     <input type="text" id="symbol" placeholder="代號" class="border-b-2 border-slate-200 py-1 w-full font-black text-2xl outline-none focus:border-indigo-500 bg-transparent">
                 </div>
                 <div class="flex-[3] flex w-full gap-2">
@@ -42,18 +53,48 @@
     </main>
 
     <script>
-        // 使用您測試成功的 API 網址
-        const API_URL = "https://script.google.com/macros/s/AKfycbz51VWvVmkuPxq66-93j6VtzYt9NWgwc2D8yPYrW6-_4KJpo4ajK7_5BoxRRGXyJR5z/exec";
+        // 【重要】請替換為您剛剛重新部署 GAS 產生的新網址
+        const API_URL = "https://script.google.com/macros/s/AKfycby-Y0lm-aB4iqVtvQ8-E4fS5IELUGEv5UtXYwSR0S3sgXyZgHcmrRoJx3BpdKKI5cIJ/exec";
+        
+        // 預設頁籤
+        let currentTab = "八爪賺大錢";
 
-        // 1. 從 Google Sheet 讀取資料
+        // 0. 切換頁籤邏輯
+        function switchTab(tabName) {
+            currentTab = tabName;
+            
+            // 更新 UI 按鈕顏色
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('tab-active');
+                btn.classList.add('tab-inactive');
+            });
+            document.getElementById(`tab-${tabName}`).classList.remove('tab-inactive');
+            document.getElementById(`tab-${tabName}`).classList.add('tab-active');
+            
+            // 更新輸入框上方的提示標籤
+            document.getElementById('current-tab-label').innerText = tabName;
+
+            // 清空表單並重新讀取該頁籤資料
+            fillForm('', '', '', '', '', '');
+            loadData();
+        }
+
+        // 1. 從 Google Sheet 讀取資料 (加上 sheet 參數)
         async function loadData() {
+            const listDiv = document.getElementById('display-list');
+            listDiv.innerHTML = `<p class="text-center text-slate-400 font-bold py-10">讀取「${currentTab}」資料中...</p>`;
+            
             try {
-                // 完全採用 test3.html 成功的 fetch 邏輯
-                const response = await fetch(API_URL);
+                // 將目前選擇的頁籤當作參數傳給 GAS
+                const response = await fetch(`${API_URL}?sheet=${encodeURIComponent(currentTab)}`);
                 const data = await response.json();
                 
-                const listDiv = document.getElementById('display-list');
                 listDiv.innerHTML = "";
+
+                if(data.length === 0) {
+                    listDiv.innerHTML = `<p class="text-center text-slate-400 font-bold py-10">此頁籤目前沒有資料喔！</p>`;
+                    return;
+                }
 
                 data.forEach(item => {
                     const price = parseFloat(item.price) || 0;
@@ -62,15 +103,30 @@
                         return price >= parseFloat(val) ? 'reached' : 'bg-slate-50 border-slate-100';
                     };
 
-                    // 產生每一列股票 HTML
+                    // 處理漲跌顏色 (台股紅漲綠跌)
+                    const changeVal = parseFloat(item.change) || 0;
+                    let changeColorClass = "text-slate-400"; // 預設平盤或無資料顏色
+                    let changeText = item.change || "--";
+                    
+                    if (changeVal > 0) {
+                        changeColorClass = "text-red-500";
+                        if (!changeText.startsWith("+")) changeText = "+" + changeText;
+                    } else if (changeVal < 0) {
+                        changeColorClass = "text-green-500";
+                    }
+
+                    // 產生每一列股票 HTML (股票代號放前面，新增漲跌顯示)
                     listDiv.innerHTML += `
                         <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center gap-3 cursor-pointer hover:border-indigo-400" onclick="fillForm('${item.symbol}','${item.number1}','${item.number2}','${item.number3}','${item.number4}','${item.number5}')">
-                            <div class="flex justify-between w-full md:w-auto items-center gap-4">
-                                <div class="w-24 text-xl font-black text-indigo-600 truncate">${item.name}</div>
-                                <div class="w-20 text-xl font-black text-slate-900">${item.symbol}</div>
-                                <div class="w-24 text-xl font-black text-right text-slate-800">${item.price}</div>
+                            <div class="flex justify-between w-full md:w-auto items-center gap-3">
+                                <div class="w-16 text-xl font-black text-slate-900">${item.symbol}</div>
+                                <div class="w-20 text-xl font-black text-indigo-600 truncate">${item.name}</div>
+                                <div class="w-24 flex flex-col items-end">
+                                    <div class="text-xl font-black text-slate-800">${item.price}</div>
+                                    <div class="text-sm font-bold ${changeColorClass}">${changeText}</div>
+                                </div>
                             </div>
-                            <div class="flex w-full md:flex-1 gap-2">
+                            <div class="flex w-full md:flex-1 gap-2 mt-2 md:mt-0">
                                 <div class="flex-1 py-2 rounded-xl border-2 text-center text-sm md:text-xl font-black ${checkColor(item.number1)}">${item.number1 || '--'}</div>
                                 <div class="flex-1 py-2 rounded-xl border-2 text-center text-sm md:text-xl font-black ${checkColor(item.number2)}">${item.number2 || '--'}</div>
                                 <div class="flex-1 py-2 rounded-xl border-2 text-center text-sm md:text-xl font-black ${checkColor(item.number3)}">${item.number3 || '--'}</div>
@@ -82,17 +138,18 @@
                     `;
                 });
             } catch (err) {
-                document.getElementById('display-list').innerHTML = `<p class="text-center text-red-500 font-bold">讀取失敗：${err.message}</p>`;
+                listDiv.innerHTML = `<p class="text-center text-red-500 font-bold">讀取失敗：${err.message}</p>`;
             }
         }
 
-        // 2. 儲存到 Google Sheet
+        // 2. 儲存到 Google Sheet (傳送當前頁籤名稱)
         async function saveData() {
             const sym = document.getElementById('symbol').value.trim();
             if (!sym) return alert("請輸入股票代號");
 
             const postData = {
                 action: "save",
+                sheetName: currentTab, // 告訴後端寫入哪個頁籤
                 data: {
                     symbol: sym,
                     number1: document.getElementById('n1').value,
@@ -104,14 +161,15 @@
             };
 
             await fetch(API_URL, { method: "POST", body: JSON.stringify(postData) });
-            location.reload();
+            loadData(); // 不再整頁重整，只需重新讀取資料
+            fillForm('', '', '', '', '', ''); // 清空輸入框
         }
 
-        // 3. 刪除股票
+        // 3. 刪除股票 (傳送當前頁籤名稱)
         async function deleteData(sym) {
-            if (!confirm(`確定要刪除 ${sym} 嗎？`)) return;
-            await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "delete", symbol: sym }) });
-            location.reload();
+            if (!confirm(`確定要從「${currentTab}」刪除 ${sym} 嗎？`)) return;
+            await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "delete", symbol: sym, sheetName: currentTab }) });
+            loadData();
         }
 
         // 4. 點擊列表自動填入上方表格
@@ -130,4 +188,3 @@
     </script>
 </body>
 </html>
-
