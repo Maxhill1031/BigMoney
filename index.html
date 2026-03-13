@@ -79,13 +79,12 @@
             loadData();
         }
 
-        // 1. 從 Google Sheet 讀取資料 (加上 sheet 參數)
+// 1. 從 Google Sheet 讀取資料 (加上 sheet 參數)
         async function loadData() {
             const listDiv = document.getElementById('display-list');
             listDiv.innerHTML = `<p class="text-center text-slate-400 font-bold py-10">讀取「${currentTab}」資料中...</p>`;
             
             try {
-                // 將目前選擇的頁籤當作參數傳給 GAS
                 const response = await fetch(`${API_URL}?sheet=${encodeURIComponent(currentTab)}`);
                 const data = await response.json();
                 
@@ -98,34 +97,47 @@
 
                 data.forEach(item => {
                     const price = parseFloat(item.price) || 0;
+                    
+                    // 判斷 T1~T5 的達標底色
                     const checkColor = (val) => {
                         if (!val || isNaN(val)) return 'bg-slate-50 border-slate-100';
                         return price >= parseFloat(val) ? 'reached' : 'bg-slate-50 border-slate-100';
                     };
 
-                    // 處理漲跌顏色 (台股紅漲綠跌)
-                    const changeVal = parseFloat(item.change) || 0;
-                    let changeColorClass = "text-slate-400"; // 預設平盤或無資料顏色
+                    // 精準判斷漲跌與顏色 (平盤黑、漲紅、跌綠，且股價與漲跌同色)
+                    const changeVal = parseFloat(item.change);
+                    let displayColorClass = "text-slate-900"; // 預設平盤/無資料為黑色
                     let changeText = item.change || "--";
                     
-                    if (changeVal > 0) {
-                        changeColorClass = "text-red-500";
-                        if (!changeText.startsWith("+")) changeText = "+" + changeText;
-                    } else if (changeVal < 0) {
-                        changeColorClass = "text-green-500";
+                    if (!isNaN(changeVal)) {
+                        if (changeVal > 0) {
+                            displayColorClass = "text-red-600";
+                            if (!changeText.toString().startsWith("+")) changeText = "+" + changeText;
+                        } else if (changeVal < 0) {
+                            displayColorClass = "text-green-600";
+                        } else {
+                            displayColorClass = "text-slate-900"; // 平盤維持黑色
+                        }
+                    } else if (changeText.includes("+") || changeText.includes("漲")) {
+                        // 防呆：如果抓到的是純文字如 "漲停"
+                        displayColorClass = "text-red-600";
+                    } else if (changeText.includes("-") || changeText.includes("跌")) {
+                        displayColorClass = "text-green-600";
                     }
 
-                    // 產生每一列股票 HTML (股票代號放前面，新增漲跌顯示)
+                    // 產生每一列股票 HTML (價格與漲跌幅平行排列)
                     listDiv.innerHTML += `
                         <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center gap-3 cursor-pointer hover:border-indigo-400" onclick="fillForm('${item.symbol}','${item.number1}','${item.number2}','${item.number3}','${item.number4}','${item.number5}')">
                             <div class="flex justify-between w-full md:w-auto items-center gap-3">
                                 <div class="w-16 text-xl font-black text-slate-900">${item.symbol}</div>
                                 <div class="w-20 text-xl font-black text-indigo-600 truncate">${item.name}</div>
-                                <div class="w-24 flex flex-col items-end">
-                                    <div class="text-xl font-black text-slate-800">${item.price}</div>
-                                    <div class="text-sm font-bold ${changeColorClass}">${changeText}</div>
+                                
+                                <div class="w-32 flex justify-end items-center gap-2">
+                                    <div class="text-xl font-black ${displayColorClass}">${item.price}</div>
+                                    <div class="text-base font-bold ${displayColorClass}">${changeText}</div>
                                 </div>
                             </div>
+                            
                             <div class="flex w-full md:flex-1 gap-2 mt-2 md:mt-0">
                                 <div class="flex-1 py-2 rounded-xl border-2 text-center text-sm md:text-xl font-black ${checkColor(item.number1)}">${item.number1 || '--'}</div>
                                 <div class="flex-1 py-2 rounded-xl border-2 text-center text-sm md:text-xl font-black ${checkColor(item.number2)}">${item.number2 || '--'}</div>
@@ -188,3 +200,4 @@
     </script>
 </body>
 </html>
+
