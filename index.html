@@ -32,7 +32,7 @@
     </nav>
 
     <div class="max-w-7xl mx-auto px-4 mt-2 flex justify-end">
-        <span id="last-update-time" class="text-xs font-bold text-slate-400 bg-slate-200 px-2 py-1 rounded-full">最後更新：讀取中...</span>
+        <span id="last-update-time" class="text-xs font-bold text-slate-400 bg-slate-200 px-2 py-1 rounded-full shadow-sm border border-slate-300">最後更新：讀取中...</span>
     </div>
 
     <main class="max-w-7xl mx-auto p-4 mt-2">
@@ -59,11 +59,11 @@
     </main>
 
     <script>
-        // 【⚠️ 重要】請替換為您 GAS 重新部署後產生的最新網址
-        const API_URL = "https://script.google.com/macros/s/AKfycbx7DEfxXO4_EaU2eBzBzdD-VXp5lwDLeK1X3QwzjtUGwgZwp8nvgqLB36j0EWhLnQ7D/exec";
+        // 【⚠️ 重要】請換成您自己最新的 Google Apps Script (GAS) 部署網址
+        const API_URL = "https://script.google.com/macros/s/AKfycbz51VWvVmkuPxq66-93j6VtzYt9NWgwc2D8yPYrW6-_4KJpo4ajK7_5BoxRRGXyJR5z/exec";
         
         let currentTab = "八爪賺大錢";
-        let globalDataCache = {}; // ★ 這是瞬間切換頁籤的秘密武器：記憶體快取！
+        let globalDataCache = {}; // 記憶體快取
 
         // 0. 切換頁籤 (直接從記憶體讀取，0延遲)
         function switchTab(tabName) {
@@ -96,7 +96,7 @@
 
             try {
                 const response = await fetch(API_URL);
-                globalDataCache = await response.json(); // 一次把所有資料存下來
+                globalDataCache = await response.json(); 
                 
                 // 更新時間戳記
                 const now = new Date();
@@ -108,7 +108,7 @@
             }
         }
 
-        // 2. 將快取中的資料畫到畫面上
+        // 2. 將快取中的資料畫到畫面上 (包含排版優化)
         function renderList() {
             const listDiv = document.getElementById('display-list');
             const data = globalDataCache[currentTab] || [];
@@ -123,14 +123,14 @@
             data.forEach(item => {
                 const price = parseFloat(item.price) || 0;
                 
-                // 【核心功能】達標顏色判定：股價 >= 目標價，就套用 reached (紅色) 樣式
+                // 達標顏色判定：股價 >= 目標價，就套用 reached (紅色) 樣式
                 const checkColor = (val) => {
                     if (!val || isNaN(val)) return 'bg-slate-50 border-slate-100 text-slate-900';
                     return price >= parseFloat(val) ? 'reached' : 'bg-slate-50 border-slate-100 text-slate-900';
                 };
 
                 // 處理 % 數顏色 (紅漲、綠跌、黑平盤)
-                const changeVal = parseFloat(item.change); // 會把 "+5.58%" 解析成 5.58
+                const changeVal = parseFloat(item.change); 
                 let displayColorClass = "text-slate-900"; 
                 let changeText = item.change || "--";
                 
@@ -145,10 +145,13 @@
 
                 listDiv.innerHTML += `
                     <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center gap-3 cursor-pointer hover:border-indigo-400 transition" onclick="fillForm('${item.symbol}','${item.number1}','${item.number2}','${item.number3}','${item.number4}','${item.number5}')">
-                        <div class="flex justify-between w-full md:w-auto items-center gap-3">
-                            <div class="w-16 text-xl font-black text-slate-900">${item.symbol}</div>
-                            <div class="w-20 text-xl font-black text-indigo-600 truncate">${item.name}</div>
-                            <div class="w-24 flex justify-end items-center gap-2">
+                        
+                        <div class="flex justify-between w-full md:w-80 items-center gap-2 flex-shrink-0 pr-2">
+                            <div class="flex items-center gap-2 min-w-0 flex-1">
+                                <div class="text-xl font-black text-slate-900 whitespace-nowrap">${item.symbol}</div>
+                                <div class="text-xl font-black text-indigo-600 truncate" title="${item.name}">${item.name}</div>
+                            </div>
+                            <div class="flex justify-end items-center gap-2 flex-shrink-0 whitespace-nowrap">
                                 <div class="text-xl font-black ${displayColorClass}">${item.price}</div>
                                 <div class="text-base font-bold ${displayColorClass}">${changeText}</div>
                             </div>
