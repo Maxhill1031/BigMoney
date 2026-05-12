@@ -151,32 +151,34 @@
         // 1. 從後端下載資料（帶 token）
         // ==========================================
         async function fetchAllData() {
-            const listDiv = document.getElementById('display-list');
-            const timeLabel = document.getElementById('last-update-time');
-            
-            if (Object.keys(globalDataCache).length === 0) {
-                listDiv.innerHTML = `<p class="text-center text-slate-400 font-bold py-10">連線資料庫中...</p>`;
-            }
+    const listDiv = document.getElementById('display-list');
+    const timeLabel = document.getElementById('last-update-time');
 
-            try {
-                // ★ 把 token 帶在 URL 參數
-                const response = await fetch(`${API_URL}?token=${idToken}`);
-                const json = await response.json();
+    if (Object.keys(globalDataCache).length === 0) {
+        listDiv.innerHTML = `<p class="text-center text-slate-400 font-bold py-10">連線資料庫中...</p>`;
+    }
 
-                // ★ 檢查是否被 GAS 拒絕
-                if (json.error) {
-                    listDiv.innerHTML = `<p class="text-center text-red-500 font-bold py-10">⚠️ ${json.error}</p>`;
-                    return;
-                }
+    try {
+        // ★ 改用 POST，token 放在 body 裡
+        const response = await fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "get", token: idToken })
+        });
+        const json = await response.json();
 
-                globalDataCache = json;
-                const now = new Date();
-                timeLabel.innerText = `最後更新：${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
-                renderList();
-            } catch (err) {
-                listDiv.innerHTML = `<p class="text-center text-red-500 font-bold">讀取失敗：${err.message}</p>`;
-            }
+        if (json.error || json.status === "error") {
+            listDiv.innerHTML = `<p class="text-center text-red-500 font-bold py-10">⚠️ ${json.error || json.message}</p>`;
+            return;
         }
+
+        globalDataCache = json;
+        const now = new Date();
+        timeLabel.innerText = `最後更新：${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+        renderList();
+    } catch (err) {
+        listDiv.innerHTML = `<p class="text-center text-red-500 font-bold">讀取失敗：${err.message}</p>`;
+    }
+}
 
         // ==========================================
         // 2. 渲染清單
