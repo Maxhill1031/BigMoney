@@ -150,7 +150,7 @@
         // ==========================================
         // 1. 從後端下載資料（帶 token）
         // ==========================================
-        async function fetchAllData() {
+async function fetchAllData() {
     const listDiv = document.getElementById('display-list');
     const timeLabel = document.getElementById('last-update-time');
 
@@ -159,15 +159,23 @@
     }
 
     try {
-        // ★ 改用 POST，token 放在 body 裡
         const response = await fetch(API_URL, {
             method: "POST",
             body: JSON.stringify({ action: "get", token: idToken })
         });
         const json = await response.json();
 
-        if (json.error || json.status === "error") {
-            listDiv.innerHTML = `<p class="text-center text-red-500 font-bold py-10">⚠️ ${json.error || json.message}</p>`;
+        // ★ 偵測無權限（token 過期或不在白名單）
+        if (json.status === "error" || json.error) {
+            const msg = json.message || json.error || "";
+            // token 過期時自動登出並提示
+            if (msg.includes("無權限") || msg.includes("token")) {
+                signOut();
+                document.getElementById('login-error').textContent = "登入已過期，請重新登入";
+                document.getElementById('login-error').classList.remove('hidden');
+            } else {
+                listDiv.innerHTML = `<p class="text-center text-red-500 font-bold py-10">⚠️ ${msg}</p>`;
+            }
             return;
         }
 
