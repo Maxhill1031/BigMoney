@@ -150,43 +150,47 @@
         // ==========================================
         // 1. 從後端下載資料（帶 token）
         // ==========================================
-async function fetchAllData() {
-    const listDiv = document.getElementById('display-list');
-    const timeLabel = document.getElementById('last-update-time');
+        async function fetchAllData() {
+            const listDiv = document.getElementById('display-list');
+            const timeLabel = document.getElementById('last-update-time');
 
-    if (Object.keys(globalDataCache).length === 0) {
-        listDiv.innerHTML = `<p class="text-center text-slate-400 font-bold py-10">連線資料庫中...</p>`;
-    }
-
-    try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify({ action: "get", token: idToken })
-        });
-        const json = await response.json();
-
-        // ★ 偵測無權限（token 過期或不在白名單）
-        if (json.status === "error" || json.error) {
-            const msg = json.message || json.error || "";
-            // token 過期時自動登出並提示
-            if (msg.includes("無權限") || msg.includes("token")) {
-                signOut();
-                document.getElementById('login-error').textContent = "登入已過期，請重新登入";
-                document.getElementById('login-error').classList.remove('hidden');
-            } else {
-                listDiv.innerHTML = `<p class="text-center text-red-500 font-bold py-10">⚠️ ${msg}</p>`;
+            if (Object.keys(globalDataCache).length === 0) {
+                listDiv.innerHTML = `<p class="text-center text-slate-400 font-bold py-10">連線資料庫中...</p>`;
             }
-            return;
-        }
 
-        globalDataCache = json;
-        const now = new Date();
-        timeLabel.innerText = `最後更新：${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
-        renderList();
-    } catch (err) {
-        listDiv.innerHTML = `<p class="text-center text-red-500 font-bold">讀取失敗：${err.message}</p>`;
-    }
-}
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8" // ★ 新增 headers 防止 CORS Preflight OPTIONS
+                    },
+                    redirect: "follow", // ★ 新增 redirect 以支援 Google 302 重導向
+                    body: JSON.stringify({ action: "get", token: idToken })
+                });
+                const json = await response.json();
+
+                // ★ 偵測無權限（token 過期或不在白名單）
+                if (json.status === "error" || json.error) {
+                    const msg = json.message || json.error || "";
+                    // token 過期時自動登出並提示
+                    if (msg.includes("無權限") || msg.includes("token")) {
+                        signOut();
+                        document.getElementById('login-error').textContent = "登入已過期，請重新登入";
+                        document.getElementById('login-error').classList.remove('hidden');
+                    } else {
+                        listDiv.innerHTML = `<p class="text-center text-red-500 font-bold py-10">⚠️ ${msg}</p>`;
+                    }
+                    return;
+                }
+
+                globalDataCache = json;
+                const now = new Date();
+                timeLabel.innerText = `最後更新：${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+                renderList();
+            } catch (err) {
+                listDiv.innerHTML = `<p class="text-center text-red-500 font-bold">讀取失敗：${err.message}</p>`;
+            }
+        }
 
         // ==========================================
         // 2. 渲染清單
@@ -269,16 +273,28 @@ async function fetchAllData() {
                 }
             };
 
-            const res = await fetch(API_URL, { method: "POST", body: JSON.stringify(postData) });
-            const json = await res.json();
-            if (json.status === "error") {
-                alert("操作失敗：" + (json.message || "未知錯誤"));
-            } else {
-                fillForm('', '', '', '', '', '');
-                await fetchAllData();
+            try {
+                const res = await fetch(API_URL, { 
+                    method: "POST", 
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8" // ★ 新增 headers 防止 CORS Preflight OPTIONS
+                    },
+                    redirect: "follow", // ★ 新增 redirect 以支援 Google 302 重導向
+                    body: JSON.stringify(postData) 
+                });
+                const json = await res.json();
+                if (json.status === "error") {
+                    alert("操作失敗：" + (json.message || "未知錯誤"));
+                } else {
+                    fillForm('', '', '', '', '', '');
+                    await fetchAllData();
+                }
+            } catch (err) {
+                alert("傳送失敗：" + err.message);
+            } finally {
+                btn.innerText = "儲存/更新"; 
+                btn.disabled = false;
             }
-            btn.innerText = "儲存/更新"; 
-            btn.disabled = false;
         }
 
         // ==========================================
@@ -286,16 +302,24 @@ async function fetchAllData() {
         // ==========================================
         async function deleteData(sym) {
             if (!confirm(`確定要從「${currentTab}」刪除 ${sym} 嗎？`)) return;
-            await fetch(API_URL, {
-                method: "POST",
-                body: JSON.stringify({
-                    token: idToken,  // ★ 帶 token
-                    action: "delete",
-                    symbol: sym,
-                    sheetName: currentTab
-                })
-            });
-            await fetchAllData();
+            try {
+                await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8" // ★ 新增 headers 防止 CORS Preflight OPTIONS
+                    },
+                    redirect: "follow", // ★ 新增 redirect 以支援 Google 302 重導向
+                    body: JSON.stringify({
+                        token: idToken,  // ★ 帶 token
+                        action: "delete",
+                        symbol: sym,
+                        sheetName: currentTab
+                    })
+                });
+                await fetchAllData();
+            } catch (err) {
+                alert("刪除失敗：" + err.message);
+            }
         }
 
         // ==========================================
